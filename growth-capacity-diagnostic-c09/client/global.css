@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * Kwikly brand theme — HSL format required by tailwind.config.ts
+   * Navy:  #00355F  → HSL(207, 100%, 19%)
+   * Coral: #F05271  → HSL(348, 84%, 63%)
+  */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 207 100% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 207 100% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 207 100% 13%;
+
+    --primary: 349 77% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 207 100% 19%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 207 20% 95%;
+    --muted-foreground: 207 25% 48%;
+
+    --accent: 349 100% 96%;
+    --accent-foreground: 349 77% 45%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 207 20% 90%;
+    --input: 207 20% 90%;
+    --ring: 349 77% 60%;
+
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Montserrat', system-ui, sans-serif;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th, input) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  * {
+    font-family: 'Montserrat', system-ui, sans-serif !important;
+  }
+
+  pre, code {
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* Remove native spin buttons so text-align: center works correctly */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+    text-align: center;
+  }
+}
+
+@layer utilities {
+  .kwikly-coral {
+    background-color: hsl(348, 84%, 60%);
+  }
+
+  .kwikly-navy {
+    background-color: hsl(207, 100%, 19%);
+  }
+
+  /* Range slider */
+  .input-range {
+    @apply w-full h-1.5 rounded-full appearance-none cursor-pointer;
+    background: linear-gradient(
+      to right,
+      hsl(349, 77%, 60%) 0%,
+      hsl(349, 77%, 60%) var(--range-progress, 50%),
+      hsl(207, 30%, 88%) var(--range-progress, 50%),
+      hsl(207, 30%, 88%) 100%
+    );
+  }
+
+  .input-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2.5px solid hsl(349, 77%, 60%);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+
+  .input-range::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2.5px solid hsl(349, 77%, 60%);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+}
