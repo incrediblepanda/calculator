@@ -150,9 +150,10 @@ const data: MyRouteResponse = await response.json();
 
 ## Production Deployment
 
-- **Standard**: `pnpm build`
+- **Standard**: `pnpm build:client` (static SPA) or `pnpm build` (SPA + Node server)
+- **Vercel**: From the repository root (`calculator/`), run `vercel` or connect Git — `vercel.json` at the repo root builds this app and publishes `dist/spa`. Optional: set Vercel **Root Directory** to `growth-capacity-diagnostic-c09` and use `pnpm build:client` / `dist/spa` in the dashboard instead.
+- **Netlify**: `netlify.toml` in this directory (client-only build + optional API function)
 - **Binary**: Self-contained executables (Linux, macOS, Windows)
-- **Cloud Deployment**: Use either Netlify or Vercel via their MCP integrations for easy deployment. Both providers work well with this starter template.
 
 ## Architecture Notes
 

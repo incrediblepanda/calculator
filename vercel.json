@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd growth-capacity-diagnostic-c09 && npx --yes pnpm@10.14.0 install --frozen-lockfile",
+  "buildCommand": "cd growth-capacity-diagnostic-c09 && pnpm build:client",
+  "outputDirectory": "growth-capacity-diagnostic-c09/dist/spa",
+  "rewrites": [
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
