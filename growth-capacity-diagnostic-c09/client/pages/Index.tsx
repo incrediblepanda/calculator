@@ -54,9 +54,10 @@ export default function Index() {
               </div>
 
               <p className="mt-5 text-base text-gray-500 leading-relaxed font-medium">
-                See how staffing gaps reduce access to care, restrict clinical
-                capacity, and impact production. Then model how better coverage
-                can protect revenue and unlock growth.
+                Answer 4 quick questions about your practice. We use industry
+                benchmarks to show how staffing gaps and a booked-out schedule
+                cost you production — and how much better coverage can protect
+                and unlock.
               </p>
 
               <div className="mt-6 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
