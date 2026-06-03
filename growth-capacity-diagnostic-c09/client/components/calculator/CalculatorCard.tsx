@@ -1,4 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 // ─── Fixed assumptions (industry norms — not shown to the office) ───────────────
 // Mirrors the "Math & Norms" tab of the Growth2 model. These drive every derived
@@ -33,6 +42,12 @@ function fmtCurrency(n: number) {
 }
 function fmtNum(n: number) {
   return Math.round(n).toLocaleString("en-US");
+}
+function fmtDec(n: number, digits = 1) {
+  return n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: digits });
+}
+function fmtPct(n: number) {
+  return `${(n * 100).toLocaleString("en-US", { maximumFractionDigits: 1 })}%`;
 }
 
 // ─── Shared number input with stepper ─────────────────────────────────────────
@@ -114,6 +129,33 @@ function Metric({
   );
 }
 
+// ─── Drawer line item ──────────────────────────────────────────────────────────
+function Row({
+  label, value, formula, strong = false,
+}: {
+  label: string; value: string; formula?: string; strong?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-1.5 border-b border-gray-100 last:border-0">
+      <div className="min-w-0">
+        <div className={`text-[13px] ${strong ? "font-bold text-navy-900" : "font-medium text-gray-600"}`}>{label}</div>
+        {formula && <div className="text-[11px] text-gray-400 mt-0.5">{formula}</div>}
+      </div>
+      <div className={`shrink-0 tabular-nums ${strong ? "text-base font-black text-navy-900" : "text-sm font-bold text-navy-800"}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-coral-500 mt-5 mb-1.5 first:mt-0">
+      {children}
+    </p>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function CalculatorCard() {
   // ── The four office inputs ───────────────────────────────────────────────────
@@ -184,17 +226,43 @@ export default function CalculatorCard() {
     const recommendedShiftsPerMonth = shiftsToCoverGaps + Math.round(digOutShiftsPerMonth);
 
     return {
+      // Derived norms
+      cleaningShare,
+      cleaningRecallInterval,
+      perioRecallInterval,
       activePanel,
+      prodPerChairDay,
+      backlogMonths,
+      valuePerNewPatient,
+      // Staffing gaps
       productionAtRisk,
       protectedRevenue,
+      // Backlog — existing patients
+      perioLossFactor,
+      lostPerioVisits,
+      perioRevenueLost,
+      cleaningLossFactor,
+      lostCleaningVisits,
+      cleaningRevenueLost,
       recurringLeftOnTable,
+      // Backlog — new patients
+      newPatientsPerYear,
+      lossRate,
+      newPatientsLostPerYear,
       newPatientRevenueLost,
+      // Totals
       backlogCore,
       totalOpportunityCore,
-      // Rep-only (not rendered):
+      // Recommended shifts
+      shiftsToCoverGaps,
+      digOutVisits,
+      digOutShiftsPerMonth,
+      recommendedShiftsPerMonth,
+      // Rep-only:
+      untreatedCleaningVisits,
+      withDownstreamPotential,
       downstreamRevenue,
       totalOpportunityWithDownstream,
-      recommendedShiftsPerMonth,
     };
   }, [hygieneChairs, patientsPerChairPerDay, shiftsUnworkedPerMonth, weeksOut]);
 
@@ -253,9 +321,96 @@ export default function CalculatorCard() {
 
       {/* ── Outputs: what the office sees ──────────────────────────────────── */}
       <div className="px-6 sm:px-8 py-5">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400 mb-4">
-          What your office sees
-        </p>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
+            What your office sees
+          </p>
+          <Drawer>
+            <DrawerTrigger className="inline-flex items-center gap-1.5 text-[11px] font-bold text-navy-700 hover:text-coral-500 transition-colors">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-6m3 6v-4m3 4v-8M3 4h18M5 4v16a1 1 0 001 1h12a1 1 0 001-1V4" />
+              </svg>
+              See the detailed calculations
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[88vh]">
+              <DrawerHeader className="border-b border-gray-100">
+                <DrawerTitle className="text-navy-900">Behind the scenes: the math</DrawerTitle>
+                <DrawerDescription>
+                  You enter four numbers. Everything below is derived from fixed dental industry benchmarks.
+                </DrawerDescription>
+              </DrawerHeader>
+
+              <div className="overflow-y-auto px-5 sm:px-6 py-4">
+                <div className="mx-auto max-w-2xl">
+                  <SectionTitle>What you entered</SectionTitle>
+                  <Row label="Hygiene chairs" value={fmtNum(hygieneChairs)} />
+                  <Row label="Hygiene patients per chair, per day" value={fmtNum(patientsPerChairPerDay)} />
+                  <Row label="Shifts unworked per month" value={fmtNum(shiftsUnworkedPerMonth)} />
+                  <Row label="Weeks out booking new patients" value={fmtNum(weeksOut)} />
+
+                  <SectionTitle>Benchmarks (industry norms, held constant)</SectionTitle>
+                  <Row label="Working days per month" value={fmtNum(ASSUMPTIONS.workingDaysPerMonth)} />
+                  <Row label="Production per cleaning visit" value={fmtCurrency(ASSUMPTIONS.productionPerCleaningVisit)} />
+                  <Row label="Production per perio visit" value={fmtCurrency(ASSUMPTIONS.productionPerPerioVisit)} />
+                  <Row label="Target cleaning visits per year" value={fmtNum(ASSUMPTIONS.targetCleaningVisitsPerYear)} formula="Every 6 months" />
+                  <Row label="Target perio visits per year" value={fmtNum(ASSUMPTIONS.targetPerioVisitsPerYear)} formula="Every 3 months" />
+                  <Row label="Perio share of patient panel" value={fmtPct(ASSUMPTIONS.perioShareOfPanel)} />
+                  <Row label="New patients per chair per month" value={fmtNum(ASSUMPTIONS.newPatientsPerChairPerMonth)} />
+                  <Row label="Kwikly fill rate" value={fmtPct(ASSUMPTIONS.kwiklyFillRate)} formula="Share of unworked shifts protected" />
+                  <Row label="New patient value horizon" value={`${fmtNum(ASSUMPTIONS.newPatientValueHorizonYears)} yr`} />
+
+                  <SectionTitle>Derived from your inputs</SectionTitle>
+                  <Row label="Active patient panel" value={fmtNum(m.activePanel)} formula="chairs x patients/day x 21 days x 12 / 2" strong />
+                  <Row label="Production per chair per day" value={fmtCurrency(m.prodPerChairDay)} formula="patients/day x $150" />
+                  <Row label="Backlog in months" value={`${fmtDec(m.backlogMonths, 2)} mo`} formula="weeks out x 12 / 52" />
+                  <Row label="Value per new patient" value={fmtCurrency(m.valuePerNewPatient)} formula="2 cleanings x $150 x 1 yr" />
+
+                  <SectionTitle>Staffing gaps (protect)</SectionTitle>
+                  <Row label="Currently lost to staffing gaps / yr" value={fmtCurrency(m.productionAtRisk)} formula="shifts unworked x 12 x prod per chair/day" strong />
+                  <Row label="Booked revenue you protect / yr" value={fmtCurrency(m.protectedRevenue)} formula="at risk x fill rate" strong />
+
+                  <SectionTitle>Backlog — existing patients</SectionTitle>
+                  <Row label="Perio loss factor" value={fmtDec(m.perioLossFactor, 3)} formula="clamp((backlog - 3) / 3, 0, 4)" />
+                  <Row label="Lost perio visits / yr" value={fmtDec(m.lostPerioVisits)} formula="factor x panel x 25%" />
+                  <Row label="Perio revenue lost" value={fmtCurrency(m.perioRevenueLost)} formula="x $250 per perio visit" />
+                  <Row label="Cleaning loss factor" value={fmtDec(m.cleaningLossFactor, 3)} formula="clamp((backlog - 6) / 6, 0, 2)" />
+                  <Row label="Lost cleaning visits / yr" value={fmtDec(m.lostCleaningVisits)} formula="factor x panel x 75%" />
+                  <Row label="Cleaning revenue lost" value={fmtCurrency(m.cleaningRevenueLost)} formula="x $150 per cleaning visit" />
+                  <Row label="Recurring revenue left on the table" value={fmtCurrency(m.recurringLeftOnTable)} formula="perio lost + cleaning lost" strong />
+
+                  <SectionTitle>Backlog — new patients</SectionTitle>
+                  <Row label="New patients per year" value={fmtNum(m.newPatientsPerYear)} formula="15 x chairs x 12" />
+                  <Row label="Loss rate at this booking distance" value={fmtPct(m.lossRate)} formula="looked up from weeks-out table" />
+                  <Row label="New patients lost per year" value={fmtDec(m.newPatientsLostPerYear)} formula="new patients x loss rate" />
+                  <Row label="New patient revenue lost" value={fmtCurrency(m.newPatientRevenueLost)} formula="x $300 value per new patient" strong />
+
+                  <SectionTitle>Totals</SectionTitle>
+                  <Row label="Stuck in your backlog (core)" value={fmtCurrency(m.backlogCore)} formula="recurring + new patient loss" strong />
+                  <Row label="Your opportunity with Kwikly" value={fmtCurrency(m.totalOpportunityCore)} formula="protected + backlog core" strong />
+
+                  <SectionTitle>Recommended per diem shifts</SectionTitle>
+                  <Row label="Shifts to cover gaps" value={fmtNum(m.shiftsToCoverGaps)} formula="rounded shifts unworked" />
+                  <Row label="Lost visits to dig out" value={fmtDec(m.digOutVisits)} formula="perio + cleaning + new patient cleanings" />
+                  <Row label="Dig-out shifts per month" value={fmtDec(m.digOutShiftsPerMonth, 2)} formula="lost visits / patients per day / 12" />
+                  <Row label="Recommended per diem shifts / month" value={fmtNum(m.recommendedShiftsPerMonth)} formula="cover gaps + dig out" strong />
+
+                  <SectionTitle>Downstream treatment (rep context only)</SectionTitle>
+                  <Row label="Untreated cleaning visits / yr" value={fmtDec(m.untreatedCleaningVisits)} formula="lost cleanings + new patient cleanings" />
+                  <Row label="With downstream potential" value={fmtDec(m.withDownstreamPotential)} formula="x 40% share" />
+                  <Row label="Downstream revenue at stake" value={fmtCurrency(m.downstreamRevenue)} formula="x $1,700 per case" strong />
+                  <Row label="Total opportunity incl. downstream" value={fmtCurrency(m.totalOpportunityWithDownstream)} formula="core + downstream" strong />
+                  <p className="text-[11px] text-gray-400 mt-2 italic">
+                    Downstream figures are rep-only context and are not shown on the customer-facing results.
+                  </p>
+                </div>
+              </div>
+
+              <DrawerClose className="m-4 mt-2 inline-flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 text-navy-800 font-bold text-sm py-3 transition-colors">
+                Close
+              </DrawerClose>
+            </DrawerContent>
+          </Drawer>
+        </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           <Metric
