@@ -365,43 +365,73 @@ export default function CalculatorCard() {
                   <Row label="Backlog in months" value={`${fmtDec(m.backlogMonths, 2)} mo`} formula="weeks out x 12 / 52" />
                   <Row label="Value per new patient" value={fmtCurrency(m.valuePerNewPatient)} formula="2 cleanings x $150 x 1 yr" />
 
-                  <SectionTitle>Staffing gaps (protect)</SectionTitle>
-                  <Row label="Currently lost to staffing gaps / yr" value={fmtCurrency(m.productionAtRisk)} formula="shifts unworked x 12 x prod per chair/day" strong />
-                  <Row label="Booked revenue you protect / yr" value={fmtCurrency(m.protectedRevenue)} formula="at risk x fill rate" strong />
+                  {m.productionAtRisk > 0 && (
+                    <>
+                      <SectionTitle>Staffing gaps (protect)</SectionTitle>
+                      <Row label="Currently lost to staffing gaps / yr" value={fmtCurrency(m.productionAtRisk)} formula="shifts unworked x 12 x prod per chair/day" strong />
+                      <Row label="Booked revenue you protect / yr" value={fmtCurrency(m.protectedRevenue)} formula="at risk x fill rate" strong />
+                    </>
+                  )}
 
-                  <SectionTitle>Backlog — existing patients</SectionTitle>
-                  <Row label="Perio loss factor" value={fmtDec(m.perioLossFactor, 3)} formula="clamp((backlog - 3) / 3, 0, 4)" />
-                  <Row label="Lost perio visits / yr" value={fmtDec(m.lostPerioVisits)} formula="factor x panel x 25%" />
-                  <Row label="Perio revenue lost" value={fmtCurrency(m.perioRevenueLost)} formula="x $250 per perio visit" />
-                  <Row label="Cleaning loss factor" value={fmtDec(m.cleaningLossFactor, 3)} formula="clamp((backlog - 6) / 6, 0, 2)" />
-                  <Row label="Lost cleaning visits / yr" value={fmtDec(m.lostCleaningVisits)} formula="factor x panel x 75%" />
-                  <Row label="Cleaning revenue lost" value={fmtCurrency(m.cleaningRevenueLost)} formula="x $150 per cleaning visit" />
-                  <Row label="Recurring revenue left on the table" value={fmtCurrency(m.recurringLeftOnTable)} formula="perio lost + cleaning lost" strong />
+                  {m.recurringLeftOnTable > 0 && (
+                    <>
+                      <SectionTitle>Backlog — existing patients</SectionTitle>
+                      {m.perioRevenueLost > 0 && (
+                        <>
+                          <Row label="Perio loss factor" value={fmtDec(m.perioLossFactor, 3)} formula="clamp((backlog - 3) / 3, 0, 4)" />
+                          <Row label="Lost perio visits / yr" value={fmtDec(m.lostPerioVisits)} formula="factor x panel x 25%" />
+                          <Row label="Perio revenue lost" value={fmtCurrency(m.perioRevenueLost)} formula="x $250 per perio visit" />
+                        </>
+                      )}
+                      {m.cleaningRevenueLost > 0 && (
+                        <>
+                          <Row label="Cleaning loss factor" value={fmtDec(m.cleaningLossFactor, 3)} formula="clamp((backlog - 6) / 6, 0, 2)" />
+                          <Row label="Lost cleaning visits / yr" value={fmtDec(m.lostCleaningVisits)} formula="factor x panel x 75%" />
+                          <Row label="Cleaning revenue lost" value={fmtCurrency(m.cleaningRevenueLost)} formula="x $150 per cleaning visit" />
+                        </>
+                      )}
+                      <Row label="Recurring revenue left on the table" value={fmtCurrency(m.recurringLeftOnTable)} formula="perio lost + cleaning lost" strong />
+                    </>
+                  )}
 
                   <SectionTitle>Backlog — new patients</SectionTitle>
                   <Row label="New patients per year" value={fmtNum(m.newPatientsPerYear)} formula="15 x chairs x 12" />
                   <Row label="Loss rate at this booking distance" value={fmtPct(m.lossRate)} formula="looked up from weeks-out table" />
-                  <Row label="New patients lost per year" value={fmtDec(m.newPatientsLostPerYear)} formula="new patients x loss rate" />
-                  <Row label="New patient revenue lost" value={fmtCurrency(m.newPatientRevenueLost)} formula="x $300 value per new patient" strong />
+                  {m.newPatientRevenueLost > 0 && (
+                    <>
+                      <Row label="New patients lost per year" value={fmtDec(m.newPatientsLostPerYear)} formula="new patients x loss rate" />
+                      <Row label="New patient revenue lost" value={fmtCurrency(m.newPatientRevenueLost)} formula="x $300 value per new patient" strong />
+                    </>
+                  )}
 
                   <SectionTitle>Totals</SectionTitle>
-                  <Row label="Stuck in your backlog (core)" value={fmtCurrency(m.backlogCore)} formula="recurring + new patient loss" strong />
+                  {m.backlogCore > 0 && (
+                    <Row label="Stuck in your backlog (core)" value={fmtCurrency(m.backlogCore)} formula="recurring + new patient loss" strong />
+                  )}
                   <Row label="Your opportunity with Kwikly" value={fmtCurrency(m.totalOpportunityCore)} formula="protected + backlog core" strong />
 
                   <SectionTitle>Recommended per diem shifts</SectionTitle>
                   <Row label="Shifts to cover gaps" value={fmtNum(m.shiftsToCoverGaps)} formula="rounded shifts unworked" />
-                  <Row label="Lost visits to dig out" value={fmtDec(m.digOutVisits)} formula="perio + cleaning + new patient cleanings" />
-                  <Row label="Dig-out shifts per month" value={fmtDec(m.digOutShiftsPerMonth, 2)} formula="lost visits / patients per day / 12" />
+                  {m.digOutVisits > 0 && (
+                    <>
+                      <Row label="Lost visits to dig out" value={fmtDec(m.digOutVisits)} formula="perio + cleaning + new patient cleanings" />
+                      <Row label="Dig-out shifts per month" value={fmtDec(m.digOutShiftsPerMonth, 2)} formula="lost visits / patients per day / 12" />
+                    </>
+                  )}
                   <Row label="Recommended per diem shifts / month" value={fmtNum(m.recommendedShiftsPerMonth)} formula="cover gaps + dig out" strong />
 
-                  <SectionTitle>Downstream treatment (rep context only)</SectionTitle>
-                  <Row label="Untreated cleaning visits / yr" value={fmtDec(m.untreatedCleaningVisits)} formula="lost cleanings + new patient cleanings" />
-                  <Row label="With downstream potential" value={fmtDec(m.withDownstreamPotential)} formula="x 40% share" />
-                  <Row label="Downstream revenue at stake" value={fmtCurrency(m.downstreamRevenue)} formula="x $1,700 per case" strong />
-                  <Row label="Total opportunity incl. downstream" value={fmtCurrency(m.totalOpportunityWithDownstream)} formula="core + downstream" strong />
-                  <p className="text-[11px] text-gray-400 mt-2 italic">
-                    Downstream figures are rep-only context and are not shown on the customer-facing results.
-                  </p>
+                  {m.downstreamRevenue > 0 && (
+                    <>
+                      <SectionTitle>Downstream treatment (rep context only)</SectionTitle>
+                      <Row label="Untreated cleaning visits / yr" value={fmtDec(m.untreatedCleaningVisits)} formula="lost cleanings + new patient cleanings" />
+                      <Row label="With downstream potential" value={fmtDec(m.withDownstreamPotential)} formula="x 40% share" />
+                      <Row label="Downstream revenue at stake" value={fmtCurrency(m.downstreamRevenue)} formula="x $1,700 per case" strong />
+                      <Row label="Total opportunity incl. downstream" value={fmtCurrency(m.totalOpportunityWithDownstream)} formula="core + downstream" strong />
+                      <p className="text-[11px] text-gray-400 mt-2 italic">
+                        Downstream figures are rep-only context and are not shown on the customer-facing results.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
