@@ -415,7 +415,7 @@ export default function CalculatorCard() {
 
                   {m.recurringLeftOnTable > 0 && (
                     <>
-                      <SectionTitle>Backlog — existing patients</SectionTitle>
+                      <SectionTitle>Backlog: existing patients</SectionTitle>
                       {m.perioRevenueLost > 0 && (
                         <>
                           <Row label="Perio loss factor" value={fmtDec(m.perioLossFactor, 3)} formula="clamp((backlog - 3) / 3, 0, 4)" />
@@ -434,7 +434,7 @@ export default function CalculatorCard() {
                     </>
                   )}
 
-                  <SectionTitle>Backlog — new patients</SectionTitle>
+                  <SectionTitle>Backlog: new patients</SectionTitle>
                   <Row label="New patients per year" value={fmtNum(m.newPatientsPerYear)} formula="15 x chairs x 12" />
                   <Row label="Loss rate at this booking distance" value={fmtPct(m.lossRate)} formula="looked up from weeks-out table" />
                   {m.newPatientRevenueLost > 0 && (
@@ -516,9 +516,9 @@ export default function CalculatorCard() {
               <div className="text-xs font-bold text-navy-800">Stuck in your backlog (per year)</div>
               <div className="text-[11px] text-gray-500 mt-0.5 max-w-md">
                 {m.backlogCore > 0 ? (
-                  <>When your hygiene schedule is booked <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, two things quietly cost you money: new patients won't wait and book elsewhere, and your current patients can't get back in on the recall schedule they're due for.</>
+                  <>Booked <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, new patients go elsewhere and current patients fall behind on recall.</>
                 ) : (
-                  <>At <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, patients can still get in on time — so nothing's stuck in your backlog yet.</>
+                  <>At <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, patients still get in on time, so nothing's stuck yet.</>
                 )}
               </div>
             </div>
@@ -533,7 +533,7 @@ export default function CalculatorCard() {
                 <span className="text-sm font-black tabular-nums text-red-500 shrink-0">{fmtCurrency(m.newPatientRevenueLost)}</span>
               </div>
               <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                Few new patients will wait {weeksOut} weeks for a cleaning, so they call the practice down the street that can see them sooner. This is the first-year value of the ones you never get to chart.
+                New patients won't wait {weeksOut} weeks, so they book elsewhere. This is their first-year value.
               </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-100 px-3 py-2.5">
@@ -542,7 +542,7 @@ export default function CalculatorCard() {
                 <span className="text-sm font-black tabular-nums text-red-500 shrink-0">{fmtCurrency(m.recurringLeftOnTable)}</span>
               </div>
               <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                Active patients — especially perio — who should be back every 3 months slip to longer intervals when there's no room on the schedule, so you bill fewer hygiene and maintenance visits than their recall calls for.
+                Existing patients, especially perio, slip past their 3-month recall when the schedule is full, so you bill fewer visits than planned.
               </p>
             </div>
           </div>
