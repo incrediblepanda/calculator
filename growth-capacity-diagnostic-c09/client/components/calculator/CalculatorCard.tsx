@@ -525,6 +525,14 @@ export default function CalculatorCard() {
           </div>
         )}
 
+        {m.downstreamRevenue > 0 && (
+          <p className="mt-3 px-1 text-[11px] text-white/40 leading-relaxed">
+            Plus an estimated{" "}
+            <span className="font-bold text-white/70">{fmtCurrency(m.downstreamRevenue)}</span>{" "}
+            in downstream treatment at stake once these patients are seen, not counted in the number above.
+          </p>
+        )}
+
         <div className="mt-5 flex flex-col sm:flex-row gap-3">
           <a
             href="https://joinkwikly.com"
