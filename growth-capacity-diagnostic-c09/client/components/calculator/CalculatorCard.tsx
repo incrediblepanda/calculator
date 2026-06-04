@@ -408,14 +408,11 @@ export default function CalculatorCard() {
 
                   {m.downstreamRevenue > 0 && (
                     <>
-                      <SectionTitle>Downstream treatment (rep context only)</SectionTitle>
+                      <SectionTitle>Downstream treatment</SectionTitle>
                       <Row label="Untreated cleaning visits / yr" value={fmtDec(m.untreatedCleaningVisits)} formula="lost cleanings + new patient cleanings" />
                       <Row label="With downstream potential" value={fmtDec(m.withDownstreamPotential)} formula="x 40% share" />
                       <Row label="Downstream revenue at stake" value={fmtCurrency(m.downstreamRevenue)} formula="x $1,700 per case" strong />
                       <Row label="Total opportunity incl. downstream" value={fmtCurrency(m.totalOpportunityWithDownstream)} formula="core + downstream" strong />
-                      <p className="text-[11px] text-gray-400 mt-2 italic">
-                        Downstream figures are rep-only context and are not shown on the customer-facing results.
-                      </p>
                     </>
                   )}
                 </div>
