@@ -514,20 +514,36 @@ export default function CalculatorCard() {
           <div className="flex items-baseline justify-between gap-3">
             <div>
               <div className="text-xs font-bold text-navy-800">Stuck in your backlog (per year)</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">New patients lost plus revenue left on the table</div>
+              <div className="text-[11px] text-gray-500 mt-0.5 max-w-md">
+                {m.backlogCore > 0 ? (
+                  <>When your hygiene schedule is booked <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, two things quietly cost you money: new patients won't wait and book elsewhere, and your current patients can't get back in on the recall schedule they're due for.</>
+                ) : (
+                  <>At <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, patients can still get in on time — so nothing's stuck in your backlog yet.</>
+                )}
+              </div>
             </div>
             <div className="text-2xl font-black tabular-nums text-red-500 shrink-0">
               {fmtCurrency(m.backlogCore)}
             </div>
           </div>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div className="flex items-baseline justify-between gap-2 bg-white rounded-lg border border-gray-100 px-3 py-2">
-              <span className="text-[11px] font-semibold text-gray-500">New patients who go elsewhere</span>
-              <span className="text-sm font-black tabular-nums text-red-500">{fmtCurrency(m.newPatientRevenueLost)}</span>
+            <div className="bg-white rounded-lg border border-gray-100 px-3 py-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-bold text-navy-800">New patients who go elsewhere</span>
+                <span className="text-sm font-black tabular-nums text-red-500 shrink-0">{fmtCurrency(m.newPatientRevenueLost)}</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1 leading-snug">
+                Few new patients will wait {weeksOut} weeks for a cleaning, so they call the practice down the street that can see them sooner. This is the first-year value of the ones you never get to chart.
+              </p>
             </div>
-            <div className="flex items-baseline justify-between gap-2 bg-white rounded-lg border border-gray-100 px-3 py-2">
-              <span className="text-[11px] font-semibold text-gray-500">Recurring revenue left on the table</span>
-              <span className="text-sm font-black tabular-nums text-red-500">{fmtCurrency(m.recurringLeftOnTable)}</span>
+            <div className="bg-white rounded-lg border border-gray-100 px-3 py-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-bold text-navy-800">Recurring revenue left on the table</span>
+                <span className="text-sm font-black tabular-nums text-red-500 shrink-0">{fmtCurrency(m.recurringLeftOnTable)}</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1 leading-snug">
+                Active patients — especially perio — who should be back every 3 months slip to longer intervals when there's no room on the schedule, so you bill fewer hygiene and maintenance visits than their recall calls for.
+              </p>
             </div>
           </div>
         </div>
