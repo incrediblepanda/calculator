@@ -1,0 +1,7 @@
+# Playwright (local responsive harness)
+# Note: baseline screenshots in e2e/*-snapshots/ ARE committed on purpose so
+# visual-regression diffs are meaningful. Only ephemeral output is ignored.
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
