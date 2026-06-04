@@ -345,7 +345,7 @@ export default function CalculatorCard() {
           />
           <Slider
             label="Shifts unworked per month"
-            description="How often a hygiene chair sits empty"
+            description="Sick days, PTO, callouts, and open shifts you can't fill"
             value={shiftsUnworkedPerMonth}
             onChange={setShiftsUnworkedPerMonth}
             min={0} max={40}
@@ -504,7 +504,11 @@ export default function CalculatorCard() {
           <Metric
             label="Recommended per diem shifts per month"
             value={fmtNum(m.recommendedShiftsPerMonth)}
-            sub="Cover gaps plus dig out the backlog"
+            sub={
+              Math.round(m.digOutShiftsPerMonth) > 0
+                ? `${m.shiftsToCoverGaps} to cover unworked shifts + ${Math.round(m.digOutShiftsPerMonth)} to work down the backlog`
+                : `${m.shiftsToCoverGaps} to cover your unworked shifts`
+            }
             accent="navy"
           />
         </div>
