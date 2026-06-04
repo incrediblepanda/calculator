@@ -149,7 +149,7 @@ export default function CalculatorCard() {
   const [hygieneChairs, setHygieneChairs] = useState(2);
   const [patientsPerChairPerDay, setPatientsPerChairPerDay] = useState(8);
   const [shiftsUnworkedPerMonth, setShiftsUnworkedPerMonth] = useState(2);
-  const [weeksOut, setWeeksOut] = useState(16);
+  const [weeksOut, setWeeksOut] = useState(14);
 
   // ── Everything else is derived from the assumptions above ───────────────────
   const m = useMemo(() => {
@@ -297,7 +297,7 @@ export default function CalculatorCard() {
             min={0} max={40}
           />
           <Slider
-            label="Weeks out booking new patients"
+            label="Weeks out booking patients"
             description="How far out the schedule is booked"
             value={weeksOut}
             onChange={setWeeksOut}
