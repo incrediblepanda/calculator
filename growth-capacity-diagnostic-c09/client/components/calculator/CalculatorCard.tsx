@@ -155,6 +155,48 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── Stacked "opportunity makeup" bar (renders on the dark summary band) ────────
+function OpportunityBar({
+  segments,
+}: {
+  segments: { label: string; value: number; color: string }[];
+}) {
+  const total = segments.reduce((sum, s) => sum + s.value, 0);
+  const shown = segments.filter((s) => s.value > 0);
+  if (total <= 0 || shown.length === 0) return null;
+
+  return (
+    <div>
+      <div className="flex h-4 w-full overflow-hidden rounded-full bg-white/10">
+        {shown.map((s) => (
+          <div
+            key={s.label}
+            className="h-full"
+            style={{ width: `${(s.value / total) * 100}%`, backgroundColor: s.color }}
+            title={`${s.label}: ${fmtCurrency(s.value)}`}
+          />
+        ))}
+      </div>
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2">
+        {shown.map((s) => (
+          <div key={s.label} className="flex items-start gap-2">
+            <span className="w-2.5 h-2.5 mt-0.5 rounded-sm shrink-0" style={{ backgroundColor: s.color }} />
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold text-white/70 leading-tight">{s.label}</div>
+              <div className="text-sm font-black tabular-nums text-white leading-tight mt-0.5">
+                {fmtCurrency(s.value)}{" "}
+                <span className="text-white/40 font-semibold text-[11px]">
+                  · {Math.round((s.value / total) * 100)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function CalculatorCard() {
   // ── The four office inputs ───────────────────────────────────────────────────
@@ -504,6 +546,21 @@ export default function CalculatorCard() {
             Production you protect plus backlog you dig out
           </div>
         </div>
+
+        {m.totalOpportunityCore > 0 && (
+          <div className="mt-4 rounded-xl px-5 py-4 bg-white/8 border border-white/10">
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/50 mb-3">
+              What makes up your opportunity
+            </div>
+            <OpportunityBar
+              segments={[
+                { label: "Production you protect", value: m.protectedRevenue, color: "#34d399" },
+                { label: "New patients who go elsewhere", value: m.newPatientRevenueLost, color: "#fb7185" },
+                { label: "Recurring revenue left on the table", value: m.recurringLeftOnTable, color: "#fbbf24" },
+              ]}
+            />
+          </div>
+        )}
 
         <div className="mt-5 flex flex-col sm:flex-row gap-3">
           <a
