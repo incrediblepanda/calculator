@@ -297,7 +297,7 @@ export default function CalculatorCard() {
             min={0} max={40}
           />
           <Slider
-            label="Weeks out booking patients"
+            label="Weeks out booking new patients"
             description="How far out the schedule is booked"
             value={weeksOut}
             onChange={setWeeksOut}
