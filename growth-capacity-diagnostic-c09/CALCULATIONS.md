@@ -36,7 +36,6 @@ All math runs in the browser. Benchmarks are fixed assumptions, not live practic
 | Target perio visits per year | 4 | Every 3 months |
 | Perio share of patient panel | 25% | Splits panel perio vs. cleaning |
 | New patients per chair per month | 15 | New-patient demand |
-| Kwikly fill rate | 100% | Share of unworked shifts protected |
 | New patient value horizon | 1 year | Recall value banked |
 | Untreated cleanings with downstream potential | 40% | Links missed visits to treatment (rep only) |
 | Downstream revenue per case | $1,700 | Treatment value (rep only) |
@@ -65,7 +64,7 @@ All math runs in the browser. Benchmarks are fixed assumptions, not live practic
 ## Staffing gaps (protect)
 
 - **Currently lost to staffing gaps (per year)** = shifts unworked × 12 × production per chair per day
-- **Booked revenue you protect (per year)** = production at risk × Kwikly fill rate
+- **Booked revenue you protect (per year)** = production at risk (Kwikly covers 100% of unworked shifts)
 
 ---
 
@@ -91,7 +90,7 @@ All math runs in the browser. Benchmarks are fixed assumptions, not live practic
 |------|--------|
 | Active patients (estimated) | Derived panel |
 | Currently lost to staffing gaps (per year) | Production at risk |
-| Booked revenue you protect (per year) | Production at risk × fill rate |
+| Booked revenue you protect (per year) | Production at risk (100% covered) |
 | **Stuck in your backlog (per year)** | Recurring left on table + new patient revenue lost |
 | — New patients who go elsewhere | New patient revenue lost |
 | — Recurring revenue left on the table | Perio + cleaning lost |

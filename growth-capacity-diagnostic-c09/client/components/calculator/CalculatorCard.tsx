@@ -20,7 +20,6 @@ const ASSUMPTIONS = {
   targetPerioVisitsPerYear: 4, // every 3 months
   perioShareOfPanel: 0.25,
   newPatientsPerChairPerMonth: 15,
-  kwiklyFillRate: 1.0, // shifts filled with Kwikly
   newPatientValueHorizonYears: 1, // bank one year of recall
   downstreamShare: 0.4, // untreated cleanings with downstream potential
   downstreamRevenuePerCase: 1700,
@@ -179,9 +178,9 @@ export default function CalculatorCard() {
     const valuePerNewPatient =
       A.targetCleaningVisitsPerYear * A.productionPerCleaningVisit * A.newPatientValueHorizonYears; // $300
 
-    // Staffing gaps (protect)
+    // Staffing gaps (protect) — assume Kwikly covers 100% of unworked shifts
     const productionAtRisk = shiftsUnworkedPerMonth * 12 * prodPerChairDay;
-    const protectedRevenue = productionAtRisk * A.kwiklyFillRate;
+    const protectedRevenue = productionAtRisk;
 
     // Backlog — existing patients
     const perioLossFactor =
@@ -356,7 +355,6 @@ export default function CalculatorCard() {
                   <Row label="Target perio visits per year" value={fmtNum(ASSUMPTIONS.targetPerioVisitsPerYear)} formula="Every 3 months" />
                   <Row label="Perio share of patient panel" value={fmtPct(ASSUMPTIONS.perioShareOfPanel)} />
                   <Row label="New patients per chair per month" value={fmtNum(ASSUMPTIONS.newPatientsPerChairPerMonth)} />
-                  <Row label="Kwikly fill rate" value={fmtPct(ASSUMPTIONS.kwiklyFillRate)} formula="Share of unworked shifts protected" />
                   <Row label="New patient value horizon" value={`${fmtNum(ASSUMPTIONS.newPatientValueHorizonYears)} yr`} />
 
                   <SectionTitle>Derived from your inputs</SectionTitle>
@@ -369,7 +367,7 @@ export default function CalculatorCard() {
                     <>
                       <SectionTitle>Staffing gaps (protect)</SectionTitle>
                       <Row label="Currently lost to staffing gaps / yr" value={fmtCurrency(m.productionAtRisk)} formula="shifts unworked x 12 x prod per chair/day" strong />
-                      <Row label="Booked revenue you protect / yr" value={fmtCurrency(m.protectedRevenue)} formula="at risk x fill rate" strong />
+                      <Row label="Booked revenue you protect / yr" value={fmtCurrency(m.protectedRevenue)} formula="Kwikly covers 100% of unworked shifts" strong />
                     </>
                   )}
 
