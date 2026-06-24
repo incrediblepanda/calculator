@@ -7,6 +7,14 @@ function measureContentHeight() {
   );
 }
 
+function isInVisualViewport(el: Element): boolean {
+  const rect = el.getBoundingClientRect();
+  const vv = window.visualViewport;
+  const top = vv?.offsetTop ?? 0;
+  const bottom = top + (vv?.height ?? window.innerHeight);
+  return rect.top >= top - 8 && rect.bottom <= bottom + 8;
+}
+
 /**
  * Scroll the clicked control into view (works cross-origin; no host script needed).
  * Also notifies kwikly-embed-host.js when present for optional iframe resize.
@@ -15,8 +23,9 @@ export function scrollEmbedIntoView(scrollAnchor?: Element | null) {
   if (window.parent === window) return;
 
   const target = scrollAnchor ?? document.documentElement;
-  // nearest avoids jumping the host page when the trigger is already visible
-  target.scrollIntoView({ block: "nearest", inline: "nearest" });
+  const block =
+    scrollAnchor && isInVisualViewport(scrollAnchor) ? "nearest" : "center";
+  target.scrollIntoView({ block, inline: "nearest" });
 
   // Optional — ignored when the host page has no listener
   window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");

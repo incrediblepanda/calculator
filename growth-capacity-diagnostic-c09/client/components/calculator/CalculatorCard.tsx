@@ -27,6 +27,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsEmbedded } from "@/hooks/use-is-embedded";
 import { setEmbedModalOpen } from "@/lib/embed-height";
+import { cn } from "@/lib/utils";
 
 // ─── Fixed assumptions (industry norms — not shown to the office) ───────────────
 // Mirrors the "Math & Norms" tab of the Growth2 model. These drive every derived
@@ -342,7 +343,10 @@ function CalculationsDetails({
       </DialogTrigger>
       <DialogContent
         embedded={isEmbedded}
-        className="max-w-lg p-0 gap-0 overflow-hidden flex flex-col sm:rounded-xl max-h-[min(75vh,520px)]"
+        className={cn(
+          "max-w-lg p-0 gap-0 overflow-hidden flex flex-col sm:rounded-xl",
+          !isEmbedded && "max-h-[min(75vh,520px)]",
+        )}
       >
         <DialogHeader className="border-b border-gray-100 px-5 py-3 pr-12 text-left space-y-1">
           <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
