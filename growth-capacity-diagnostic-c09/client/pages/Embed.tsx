@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import CalculatorCard from "@/components/calculator/CalculatorCard";
-import { postEmbedHeight } from "@/lib/embed-height";
+import { startEmbedHeightReporting } from "@/lib/embed-height";
 
 /**
  * Minimal view for embedding in an iframe — calculator card only, no site chrome.
- * Example: <iframe src="https://your-domain/embed" title="Growth diagnostic" />
+ *
+ * Host page setup (both required):
+ * 1. Script: <script src="https://calc.aikwikly.com/kwikly-embed-host.js" defer></script>
+ * 2. Iframe without a fixed height="" attribute
  */
 export default function Embed() {
   useEffect(() => {
@@ -15,34 +18,7 @@ export default function Embed() {
     };
   }, []);
 
-  // Report our full content height to the parent (Webflow) so it can size the
-  // iframe to match. When the iframe is exactly as tall as the content there is
-  // no internal scroll, so wheel/touch events pass through to the host page
-  // instead of getting trapped inside the calculator.
-  //
-  // Host page setup: include https://calc.aikwikly.com/kwikly-embed-host.js and
-  // omit a fixed height="" on the iframe so height postMessages can apply.
-  useEffect(() => {
-    if (window.parent === window) return; // not embedded
-
-    postEmbedHeight();
-
-    const observer = new ResizeObserver(postEmbedHeight);
-    observer.observe(document.documentElement);
-
-    window.addEventListener("load", postEmbedHeight);
-    // Allow the parent to explicitly request the current height.
-    const onMessage = (event: MessageEvent) => {
-      if (event.data === "kwikly-embed-request-height") postEmbedHeight();
-    };
-    window.addEventListener("message", onMessage);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("load", postEmbedHeight);
-      window.removeEventListener("message", onMessage);
-    };
-  }, []);
+  useEffect(() => startEmbedHeightReporting(), []);
 
   return (
     <div className="bg-gray-50 min-h-0">

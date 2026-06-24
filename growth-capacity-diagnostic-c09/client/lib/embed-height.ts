@@ -14,15 +14,11 @@ export function scrollEmbedIntoView() {
   window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
 }
 
-export function getVisibleEmbedHeight() {
-  return Math.ceil(window.innerHeight);
-}
-
 export function postEmbedHeight() {
   if (window.parent === window) return;
+  if (modalOpenCount > 0) return;
 
-  const height =
-    modalOpenCount > 0 ? getVisibleEmbedHeight() : measureContentHeight();
+  const height = measureContentHeight();
 
   if (height === lastPostedHeight) return;
   lastPostedHeight = height;
@@ -34,14 +30,40 @@ export function setEmbedModalOpen(open: boolean) {
   if (window.parent === window) return;
 
   modalOpenCount = Math.max(0, modalOpenCount + (open ? 1 : -1));
-  lastPostedHeight = 0;
-  postEmbedHeight();
 
   if (open) {
     scrollEmbedIntoView();
-    requestAnimationFrame(() => {
-      lastPostedHeight = 0;
-      postEmbedHeight();
-    });
+    return;
   }
+
+  lastPostedHeight = 0;
+  window.parent.postMessage({ type: "kwikly-embed-modal-close" }, "*");
+  requestAnimationFrame(() => postEmbedHeight());
+}
+
+/** Call on embed mount — retries help when the host script loads after the iframe. */
+export function startEmbedHeightReporting() {
+  if (window.parent === window) return;
+
+  postEmbedHeight();
+
+  const observer = new ResizeObserver(postEmbedHeight);
+  observer.observe(document.documentElement);
+
+  window.addEventListener("load", postEmbedHeight);
+
+  const onMessage = (event: MessageEvent) => {
+    if (event.data === "kwikly-embed-request-height") postEmbedHeight();
+  };
+  window.addEventListener("message", onMessage);
+
+  [100, 500, 1500].forEach((delay) => {
+    window.setTimeout(postEmbedHeight, delay);
+  });
+
+  return () => {
+    observer.disconnect();
+    window.removeEventListener("load", postEmbedHeight);
+    window.removeEventListener("message", onMessage);
+  };
 }
