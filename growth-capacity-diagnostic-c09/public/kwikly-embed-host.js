@@ -1,10 +1,13 @@
 /**
- * Webflow / host-page helper for the Kwikly calculator embed.
+ * Optional Webflow / host-page helper for the Kwikly calculator embed.
+ *
+ * Not required for modals — the embed handles those via the Visual Viewport API.
+ * Use this only if you want the iframe to auto-size to content height.
  *
  * Add to the page custom code (before </body>):
  *   <script src="https://calc.aikwikly.com/kwikly-embed-host.js" defer></script>
  *
- * Iframe markup (no fixed height attribute):
+ * Iframe markup (no fixed height attribute when using this script):
  *   <iframe src="https://calc.aikwikly.com/embed/" width="100%" style="border:none;display:block;" scrolling="no"></iframe>
  */
 (function () {
@@ -69,7 +72,7 @@
       frame.dataset.kwiklyModalOpen = "1";
       frame.dataset.kwiklySavedHeight = frame.style.height || "";
       frame.style.height = window.innerHeight + "px";
-      frame.scrollIntoView({ block: "start", inline: "nearest", behavior: "instant" });
+      frame.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
     }
 
     if (data.type === "kwikly-embed-modal-close") {

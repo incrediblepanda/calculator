@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 import Slider from "./Slider";
 import {
@@ -294,9 +294,10 @@ function CalculationsDetails({
 }) {
   const isMobile = useIsMobile();
   const isEmbedded = useIsEmbedded();
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const handleOpenChange = (open: boolean) => {
-    setEmbedModalOpen(open);
+    setEmbedModalOpen(open, open ? triggerRef.current : undefined);
   };
 
   const panelBody = (
@@ -312,7 +313,7 @@ function CalculationsDetails({
   if (isMobile) {
     return (
       <Drawer onOpenChange={handleOpenChange}>
-        <DrawerTrigger className={CALCULATIONS_TRIGGER_CLASS}>
+        <DrawerTrigger ref={triggerRef} className={CALCULATIONS_TRIGGER_CLASS}>
           <CalculationsTriggerLabel />
         </DrawerTrigger>
         <DrawerContent className="max-h-[85vh] flex flex-col">
@@ -336,7 +337,7 @@ function CalculationsDetails({
 
   return (
     <Dialog onOpenChange={handleOpenChange}>
-      <DialogTrigger className={CALCULATIONS_TRIGGER_CLASS}>
+      <DialogTrigger ref={triggerRef} className={CALCULATIONS_TRIGGER_CLASS}>
         <CalculationsTriggerLabel />
       </DialogTrigger>
       <DialogContent
