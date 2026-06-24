@@ -19,6 +19,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsEmbedded } from "@/hooks/use-is-embedded";
 import { setEmbedModalOpen } from "@/lib/embed-height";
 
 // ─── Fixed assumptions (industry norms — not shown to the office) ───────────────
@@ -275,6 +276,7 @@ function CalculationsDetails({
   m: CalculationMetrics;
 }) {
   const isMobile = useIsMobile();
+  const isEmbedded = useIsEmbedded();
 
   const handleOpenChange = (open: boolean) => {
     setEmbedModalOpen(open);
@@ -322,7 +324,10 @@ function CalculationsDetails({
       <DialogTrigger className={CALCULATIONS_TRIGGER_CLASS}>
         <CalculationsTriggerLabel />
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden flex flex-col sm:rounded-xl">
+      <DialogContent
+        embedded={isEmbedded}
+        className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden flex flex-col sm:rounded-xl"
+      >
         <DialogHeader className="border-b border-gray-100 px-6 py-4 pr-12 text-left">
           <DialogTitle className="text-navy-900">Behind the scenes: the math</DialogTitle>
           <DialogDescription>

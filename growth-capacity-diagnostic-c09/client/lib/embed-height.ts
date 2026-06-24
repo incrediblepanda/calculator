@@ -7,11 +7,17 @@ function measureContentHeight() {
   );
 }
 
+/** Visible height inside a tall iframe — not the same as window.innerHeight. */
+export function getVisibleEmbedHeight() {
+  const vv = window.visualViewport;
+  return Math.ceil(vv?.height ?? window.innerHeight);
+}
+
 export function postEmbedHeight() {
   if (window.parent === window) return;
 
   const height =
-    modalOpenCount > 0 ? window.innerHeight : measureContentHeight();
+    modalOpenCount > 0 ? getVisibleEmbedHeight() : measureContentHeight();
 
   if (height === lastPostedHeight) return;
   lastPostedHeight = height;
@@ -28,5 +34,10 @@ export function setEmbedModalOpen(open: boolean) {
 
   if (open) {
     window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
+    // Re-measure after layout so visualViewport reflects the visible slice.
+    requestAnimationFrame(() => {
+      lastPostedHeight = 0;
+      postEmbedHeight();
+    });
   }
 }
