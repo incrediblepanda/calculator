@@ -19,6 +19,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { setEmbedModalOpen } from "@/lib/embed-height";
 
 // ─── Fixed assumptions (industry norms — not shown to the office) ───────────────
 // Mirrors the "Math & Norms" tab of the Growth2 model. These drive every derived
@@ -274,6 +275,11 @@ function CalculationsDetails({
   m: CalculationMetrics;
 }) {
   const isMobile = useIsMobile();
+
+  const handleOpenChange = (open: boolean) => {
+    setEmbedModalOpen(open);
+  };
+
   const panelBody = (
     <CalculationsPanelBody
       hygieneChairs={hygieneChairs}
@@ -286,7 +292,7 @@ function CalculationsDetails({
 
   if (isMobile) {
     return (
-      <Drawer>
+      <Drawer onOpenChange={handleOpenChange}>
         <DrawerTrigger className={CALCULATIONS_TRIGGER_CLASS}>
           <CalculationsTriggerLabel />
         </DrawerTrigger>
@@ -312,7 +318,7 @@ function CalculationsDetails({
   }
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={handleOpenChange}>
       <DialogTrigger className={CALCULATIONS_TRIGGER_CLASS}>
         <CalculationsTriggerLabel />
       </DialogTrigger>
