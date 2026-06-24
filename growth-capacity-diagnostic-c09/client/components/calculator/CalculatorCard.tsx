@@ -326,7 +326,7 @@ function CalculationsDetails({
       </DialogTrigger>
       <DialogContent
         embedded={isEmbedded}
-        className="max-w-2xl max-h-[85vh] p-0 gap-0 overflow-hidden flex flex-col sm:rounded-xl"
+        className="max-w-2xl p-0 gap-0 overflow-hidden flex flex-col sm:rounded-xl"
       >
         <DialogHeader className="border-b border-gray-100 px-6 py-4 pr-12 text-left">
           <DialogTitle className="text-navy-900">Behind the scenes: the math</DialogTitle>

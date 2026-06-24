@@ -7,10 +7,15 @@ function measureContentHeight() {
   );
 }
 
-/** Visible height inside a tall iframe — not the same as window.innerHeight. */
+/** Scroll the host page so the top of the embed is visible before showing a modal. */
+export function scrollEmbedIntoView() {
+  if (window.parent === window) return;
+  document.documentElement.scrollIntoView({ block: "start", inline: "nearest" });
+  window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
+}
+
 export function getVisibleEmbedHeight() {
-  const vv = window.visualViewport;
-  return Math.ceil(vv?.height ?? window.innerHeight);
+  return Math.ceil(window.innerHeight);
 }
 
 export function postEmbedHeight() {
@@ -33,8 +38,7 @@ export function setEmbedModalOpen(open: boolean) {
   postEmbedHeight();
 
   if (open) {
-    window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
-    // Re-measure after layout so visualViewport reflects the visible slice.
+    scrollEmbedIntoView();
     requestAnimationFrame(() => {
       lastPostedHeight = 0;
       postEmbedHeight();

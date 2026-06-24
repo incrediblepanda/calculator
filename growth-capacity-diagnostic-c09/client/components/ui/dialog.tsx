@@ -3,7 +3,30 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useVisualViewport } from "@/hooks/use-visual-viewport";
+
+const EMBED_INSET = 12;
+
+function useEmbedFrameSize(enabled: boolean) {
+  const read = React.useCallback(
+    () => ({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    }),
+    [],
+  );
+
+  const [size, setSize] = React.useState(read);
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    const update = () => setSize(read());
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [enabled, read]);
+
+  return size;
+}
 
 const Dialog = DialogPrimitive.Root;
 
@@ -35,34 +58,21 @@ const DialogContent = React.forwardRef<
     embedded?: boolean;
   }
 >(({ className, children, embedded = false, style, ...props }, ref) => {
-  const viewport = useVisualViewport(embedded);
-  const inset = 16;
-
-  const embeddedOverlayStyle: React.CSSProperties | undefined = embedded
-    ? {
-        top: viewport.top,
-        left: viewport.left,
-        width: viewport.width,
-        height: viewport.height,
-      }
-    : undefined;
+  const frame = useEmbedFrameSize(embedded);
 
   const embeddedContentStyle: React.CSSProperties | undefined = embedded
     ? {
-        top: viewport.top + inset,
-        left: viewport.left + viewport.width / 2,
+        top: EMBED_INSET,
+        left: "50%",
         transform: "translateX(-50%)",
-        maxHeight: Math.max(240, viewport.height - inset * 2),
-        width: Math.min(672, Math.max(280, viewport.width - inset * 2)),
+        maxHeight: Math.max(240, frame.height - EMBED_INSET * 2),
+        width: Math.min(672, Math.max(280, frame.width - EMBED_INSET * 2)),
       }
     : undefined;
 
   return (
     <DialogPortal>
-      <DialogOverlay
-        className={embedded ? "fixed z-50 bg-black/80" : undefined}
-        style={embeddedOverlayStyle}
-      />
+      <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
         style={{ ...embeddedContentStyle, ...style }}
