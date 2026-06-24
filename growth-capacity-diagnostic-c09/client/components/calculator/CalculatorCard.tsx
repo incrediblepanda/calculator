@@ -664,7 +664,7 @@ export default function CalculatorCard() {
             href="https://joinkwikly.com/contact"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex w-full items-center justify-center bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm py-3.5 rounded-lg transition-colors"
+            className="flex w-full items-center justify-center bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm py-3.5 rounded-lg transition-colors"
           >
             Save My Results &amp; Talk to Our Team
           </a>
