@@ -3,31 +3,10 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useVisualViewport } from "@/hooks/use-visual-viewport";
 
 const EMBED_INSET = 12;
 const EMBED_DIALOG_MAX_HEIGHT = 520;
-
-function useEmbedFrameSize(enabled: boolean) {
-  const read = React.useCallback(
-    () => ({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    }),
-    [],
-  );
-
-  const [size, setSize] = React.useState(read);
-
-  React.useEffect(() => {
-    if (!enabled) return;
-    const update = () => setSize(read());
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [enabled, read]);
-
-  return size;
-}
 
 const Dialog = DialogPrimitive.Root;
 
@@ -55,31 +34,50 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
-    /** Pin overlay and panel to the visible iframe viewport (not the full iframe document). */
+    /** Pin overlay and panel to the visible iframe slice when the host page has scrolled. */
     embedded?: boolean;
   }
 >(({ className, children, embedded = false, style, ...props }, ref) => {
-  const frame = useEmbedFrameSize(embedded);
+  const viewport = useVisualViewport(embedded);
+
+  const embeddedOverlayStyle: React.CSSProperties | undefined = embedded
+    ? {
+        top: viewport.top,
+        left: viewport.left,
+        width: viewport.width,
+        height: viewport.height,
+      }
+    : undefined;
 
   const embeddedContentStyle: React.CSSProperties | undefined = embedded
     ? {
-        top: EMBED_INSET,
-        left: "50%",
+        top: viewport.top + EMBED_INSET,
+        left: viewport.left + viewport.width / 2,
         transform: "translateX(-50%)",
         maxHeight: Math.min(
           EMBED_DIALOG_MAX_HEIGHT,
-          Math.max(240, frame.height - EMBED_INSET * 2),
+          Math.max(240, viewport.height - EMBED_INSET * 2),
         ),
-        width: Math.min(512, Math.max(280, frame.width - EMBED_INSET * 2)),
+        width: Math.min(
+          512,
+          Math.max(280, viewport.width - EMBED_INSET * 2),
+        ),
       }
     : undefined;
 
   return (
     <DialogPortal>
-      <DialogOverlay />
+      {embedded ? (
+        <DialogPrimitive.Overlay
+          className="fixed z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          style={embeddedOverlayStyle}
+        />
+      ) : (
+        <DialogOverlay />
+      )}
       <DialogPrimitive.Content
         ref={ref}
-        style={{ ...embeddedContentStyle, ...style }}
+        style={{ ...(embedded ? embeddedContentStyle : undefined), ...style }}
         className={cn(
           embedded
             ? "fixed z-50 flex w-full flex-col gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:rounded-xl"

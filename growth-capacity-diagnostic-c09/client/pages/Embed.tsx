@@ -5,9 +5,21 @@ import { startEmbedHeightReporting } from "@/lib/embed-height";
 /**
  * Minimal view for embedding in an iframe — calculator card only, no site chrome.
  *
- * Host page setup (both required):
- * 1. Script: <script src="https://calc.aikwikly.com/kwikly-embed-host.js" defer></script>
- * 2. Iframe without a fixed height="" attribute
+ * Webflow / host page — iframe only (no page script required):
+ *   <iframe
+ *     src="https://calc.aikwikly.com/embed/"
+ *     width="100%"
+ *     height="1400"
+ *     style="border:none;display:block;"
+ *     scrolling="no"
+ *     title="Kwikly Clinical Capacity Calculator"
+ *   ></iframe>
+ *
+ * Modals use the Visual Viewport API so they stay on-screen when the host page
+ * has scrolled. Use a fixed height (~1400px) tall enough for the full calculator.
+ *
+ * Optional auto-height (no fixed height attribute): add before </body>
+ *   <script src="https://calc.aikwikly.com/kwikly-embed-host.js" defer></script>
  */
 export default function Embed() {
   useEffect(() => {

@@ -7,10 +7,17 @@ function measureContentHeight() {
   );
 }
 
-/** Scroll the host page so the top of the embed is visible before showing a modal. */
-export function scrollEmbedIntoView() {
+/**
+ * Scroll the clicked control into view (works cross-origin; no host script needed).
+ * Also notifies kwikly-embed-host.js when present for optional iframe resize.
+ */
+export function scrollEmbedIntoView(scrollAnchor?: Element | null) {
   if (window.parent === window) return;
-  document.documentElement.scrollIntoView({ block: "start", inline: "nearest" });
+
+  const target = scrollAnchor ?? document.documentElement;
+  target.scrollIntoView({ block: "center", inline: "nearest" });
+
+  // Optional — ignored when the host page has no listener
   window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
 }
 
@@ -26,13 +33,16 @@ export function postEmbedHeight() {
   window.parent.postMessage({ type: "kwikly-embed-height", height }, "*");
 }
 
-export function setEmbedModalOpen(open: boolean) {
+export function setEmbedModalOpen(
+  open: boolean,
+  scrollAnchor?: Element | null,
+) {
   if (window.parent === window) return;
 
   modalOpenCount = Math.max(0, modalOpenCount + (open ? 1 : -1));
 
   if (open) {
-    scrollEmbedIntoView();
+    scrollEmbedIntoView(scrollAnchor);
     return;
   }
 
