@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import CalculatorCard from "@/components/calculator/CalculatorCard";
+import { postEmbedHeight } from "@/lib/embed-height";
 
 /**
  * Minimal view for embedding in an iframe — calculator card only, no site chrome.
@@ -21,34 +22,21 @@ export default function Embed() {
   useEffect(() => {
     if (window.parent === window) return; // not embedded
 
-    let lastHeight = 0;
-    const postHeight = () => {
-      const height = Math.ceil(
-        document.documentElement.scrollHeight || document.body.scrollHeight,
-      );
-      if (height === lastHeight) return;
-      lastHeight = height;
-      window.parent.postMessage(
-        { type: "kwikly-embed-height", height },
-        "*",
-      );
-    };
+    postEmbedHeight();
 
-    postHeight();
-
-    const observer = new ResizeObserver(postHeight);
+    const observer = new ResizeObserver(postEmbedHeight);
     observer.observe(document.documentElement);
 
-    window.addEventListener("load", postHeight);
+    window.addEventListener("load", postEmbedHeight);
     // Allow the parent to explicitly request the current height.
     const onMessage = (event: MessageEvent) => {
-      if (event.data === "kwikly-embed-request-height") postHeight();
+      if (event.data === "kwikly-embed-request-height") postEmbedHeight();
     };
     window.addEventListener("message", onMessage);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("load", postHeight);
+      window.removeEventListener("load", postEmbedHeight);
       window.removeEventListener("message", onMessage);
     };
   }, []);
