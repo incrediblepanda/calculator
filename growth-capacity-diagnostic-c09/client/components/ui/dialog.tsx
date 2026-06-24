@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EMBED_INSET = 12;
+const EMBED_DIALOG_MAX_HEIGHT = 520;
 
 function useEmbedFrameSize(enabled: boolean) {
   const read = React.useCallback(
@@ -65,8 +66,11 @@ const DialogContent = React.forwardRef<
         top: EMBED_INSET,
         left: "50%",
         transform: "translateX(-50%)",
-        maxHeight: Math.max(240, frame.height - EMBED_INSET * 2),
-        width: Math.min(672, Math.max(280, frame.width - EMBED_INSET * 2)),
+        maxHeight: Math.min(
+          EMBED_DIALOG_MAX_HEIGHT,
+          Math.max(240, frame.height - EMBED_INSET * 2),
+        ),
+        width: Math.min(512, Math.max(280, frame.width - EMBED_INSET * 2)),
       }
     : undefined;
 
