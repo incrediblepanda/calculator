@@ -659,20 +659,12 @@ export default function CalculatorCard() {
           </p>
         )}
 
-        <div className="mt-5 flex flex-col sm:flex-row gap-3">
-          <a
-            href="https://joinkwikly.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm py-3.5 rounded-lg transition-colors"
-          >
-            See How Kwikly Unlocks This Growth
-          </a>
+        <div className="mt-5">
           <a
             href="https://joinkwikly.com/contact"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm py-3.5 rounded-lg transition-colors"
+            className="flex w-full items-center justify-center bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm py-3.5 rounded-lg transition-colors"
           >
             Save My Results &amp; Talk to Our Team
           </a>
