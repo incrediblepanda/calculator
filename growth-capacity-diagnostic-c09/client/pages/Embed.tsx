@@ -19,6 +19,9 @@ export default function Embed() {
   // iframe to match. When the iframe is exactly as tall as the content there is
   // no internal scroll, so wheel/touch events pass through to the host page
   // instead of getting trapped inside the calculator.
+  //
+  // Host page setup: include https://calc.aikwikly.com/kwikly-embed-host.js and
+  // omit a fixed height="" on the iframe so height postMessages can apply.
   useEffect(() => {
     if (window.parent === window) return; // not embedded
 
