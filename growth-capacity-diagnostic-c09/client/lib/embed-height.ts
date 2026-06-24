@@ -15,7 +15,8 @@ export function scrollEmbedIntoView(scrollAnchor?: Element | null) {
   if (window.parent === window) return;
 
   const target = scrollAnchor ?? document.documentElement;
-  target.scrollIntoView({ block: "center", inline: "nearest" });
+  // nearest avoids jumping the host page when the trigger is already visible
+  target.scrollIntoView({ block: "nearest", inline: "nearest" });
 
   // Optional — ignored when the host page has no listener
   window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");

@@ -51,9 +51,9 @@ const DialogContent = React.forwardRef<
 
   const embeddedContentStyle: React.CSSProperties | undefined = embedded
     ? {
-        top: viewport.top + EMBED_INSET,
+        top: viewport.top + viewport.height / 2,
         left: viewport.left + viewport.width / 2,
-        transform: "translateX(-50%)",
+        transform: "translate(-50%, -50%)",
         maxHeight: Math.min(
           EMBED_DIALOG_MAX_HEIGHT,
           Math.max(240, viewport.height - EMBED_INSET * 2),

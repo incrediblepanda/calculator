@@ -72,7 +72,7 @@
       frame.dataset.kwiklyModalOpen = "1";
       frame.dataset.kwiklySavedHeight = frame.style.height || "";
       frame.style.height = window.innerHeight + "px";
-      frame.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+      frame.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
     }
 
     if (data.type === "kwikly-embed-modal-close") {
