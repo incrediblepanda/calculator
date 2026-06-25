@@ -17,6 +17,7 @@
     'iframe[src*="calc.joinkwikly.com/embed"], iframe[src*="calc.aikwikly.com/embed"], iframe[data-kwikly-calc-embed]';
   var MIN_HEIGHT = 900;
   var FALLBACK_HEIGHT = MIN_HEIGHT;
+  var MODAL_MIN_HEIGHT = 320;
   var modalFrame = null;
   var modalViewportListeners = null;
 
@@ -47,6 +48,21 @@
     }
   }
 
+  function getTopObstruction() {
+    var maxBottom = 0;
+    var nodes = document.body ? document.body.querySelectorAll("*") : [];
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      var style = window.getComputedStyle(el);
+      if (style.position !== "fixed" && style.position !== "sticky") continue;
+      var rect = el.getBoundingClientRect();
+      if (rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
+      if (rect.width < window.innerWidth * 0.5) continue;
+      maxBottom = Math.max(maxBottom, rect.bottom);
+    }
+    return maxBottom;
+  }
+
   function getHostVisibleFrame(frame) {
     var rect = frame.getBoundingClientRect();
     var vv = window.visualViewport;
@@ -70,12 +86,21 @@
     };
   }
 
-  function postViewportToFrame(frame) {
+  function postFullIframeViewport(frame) {
     try {
+      var height = Math.ceil(
+        parseFloat(frame.style.height) || frame.getBoundingClientRect().height,
+      );
+      var width = Math.ceil(frame.getBoundingClientRect().width);
       frame.contentWindow.postMessage(
         {
           type: "kwikly-embed-host-viewport",
-          viewport: getHostVisibleFrame(frame),
+          viewport: {
+            top: 0,
+            left: 0,
+            width: width,
+            height: height,
+          },
         },
         "*",
       );
@@ -87,11 +112,20 @@
   function scrollFrameIntoHostViewport(frame) {
     var rect = frame.getBoundingClientRect();
     var vv = window.visualViewport;
-    var vTop = vv ? vv.offsetTop : 0;
-    var delta = rect.top - vTop;
+    var obstruction = getTopObstruction();
+    var targetTop = Math.max(vv ? vv.offsetTop : 0, obstruction);
+    var delta = rect.top - targetTop;
     if (Math.abs(delta) > 1) {
       window.scrollBy(0, delta);
     }
+  }
+
+  function syncModalFrame(frame) {
+    var visible = getHostVisibleFrame(frame);
+    var targetHeight = Math.max(MODAL_MIN_HEIGHT, Math.ceil(visible.height));
+    frame.style.height = targetHeight + "px";
+    frame.style.minHeight = targetHeight + "px";
+    postFullIframeViewport(frame);
   }
 
   function detachModalViewportListeners() {
@@ -110,7 +144,8 @@
   function attachModalViewportListeners(frame) {
     detachModalViewportListeners();
     var update = function () {
-      postViewportToFrame(frame);
+      scrollFrameIntoHostViewport(frame);
+      syncModalFrame(frame);
     };
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
@@ -128,24 +163,20 @@
     frame.dataset.kwiklySavedHeight = frame.style.height || "";
     frame.dataset.kwiklySavedMinHeight = frame.style.minHeight || "";
 
-    var vv = window.visualViewport;
-    var targetHeight = Math.ceil(vv ? vv.height : window.innerHeight);
-    frame.style.minHeight = targetHeight + "px";
-    frame.style.height = targetHeight + "px";
-
     scrollFrameIntoHostViewport(frame);
     frame.scrollIntoView({
       block: "start",
       inline: "nearest",
-      behavior: "instant",
+      behavior: "auto",
     });
 
     modalFrame = frame;
+    syncModalFrame(frame);
     attachModalViewportListeners(frame);
 
     requestAnimationFrame(function () {
       scrollFrameIntoHostViewport(frame);
-      postViewportToFrame(frame);
+      syncModalFrame(frame);
     });
   }
 
@@ -204,6 +235,14 @@
 
     if (data.type === "kwikly-embed-modal-open") {
       openEmbedModal(frame);
+    }
+
+    if (data.type === "kwikly-embed-request-viewport") {
+      if (frame.dataset.kwiklyModalOpen === "1") {
+        syncModalFrame(frame);
+      } else {
+        postFullIframeViewport(frame);
+      }
     }
 
     if (data.type === "kwikly-embed-modal-close") {

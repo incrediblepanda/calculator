@@ -126,6 +126,9 @@ export function setEmbedModalOpen(
 
   if (open) {
     scrollEmbedIntoView(scrollAnchor);
+    window.setTimeout(() => {
+      window.parent.postMessage({ type: "kwikly-embed-request-viewport" }, "*");
+    }, 0);
     return;
   }
 
