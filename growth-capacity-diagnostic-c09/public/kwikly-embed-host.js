@@ -1,18 +1,28 @@
 /**
  * Optional Webflow / host-page helper for the Kwikly calculator embed.
  *
- * Not required for modals — the embed handles those via the Visual Viewport API.
- * Use this only if you want the iframe to auto-size to content height.
- *
  * Add to the page custom code (before </body>):
- *   <script src="https://calc.aikwikly.com/kwikly-embed-host.js" defer></script>
+ *   <script src="https://calc.joinkwikly.com/kwikly-embed-host.js" defer></script>
  *
- * Iframe markup (no fixed height attribute when using this script):
- *   <iframe src="https://calc.aikwikly.com/embed/" width="100%" style="border:none;display:block;" scrolling="no"></iframe>
+ * With this script (no fixed height attribute on the iframe):
+ *   <iframe src="https://calc.joinkwikly.com/embed/" width="100%" style="border:none;display:block;" scrolling="no"></iframe>
+ *
+ * Without this script, set min-height on the iframe so it does not collapse:
+ *   style="border:none;display:block;min-height:900px;"
+ *
+ * Local testing: run `pnpm dev`, open http://localhost:8080/embed-host-test.html
  */
 (function () {
-  var SELECTOR = 'iframe[src*="calc.aikwikly.com/embed"]';
-  var FALLBACK_HEIGHT = 900;
+  var SELECTOR =
+    'iframe[src*="calc.joinkwikly.com/embed"], iframe[data-kwikly-calc-embed]';
+  var MIN_HEIGHT = 900;
+  var FALLBACK_HEIGHT = MIN_HEIGHT;
+
+  function applyHeight(frame, height, minHeight) {
+    var floor = minHeight || MIN_HEIGHT;
+    frame.style.minHeight = floor + "px";
+    frame.style.height = Math.max(floor, Math.ceil(height)) + "px";
+  }
 
   function findSourceFrame(source) {
     return Array.prototype.find.call(
@@ -39,6 +49,7 @@
     if (frame.dataset.kwiklyEmbedInit === "1") return;
     frame.dataset.kwiklyEmbedInit = "1";
 
+    frame.style.minHeight = MIN_HEIGHT + "px";
     if (!frame.style.height) {
       frame.style.height = FALLBACK_HEIGHT + "px";
     }
@@ -65,7 +76,7 @@
 
     if (data.type === "kwikly-embed-height" && typeof data.height === "number") {
       if (frame.dataset.kwiklyModalOpen === "1") return;
-      frame.style.height = Math.max(320, Math.ceil(data.height)) + "px";
+      applyHeight(frame, data.height, data.minHeight);
     }
 
     if (data.type === "kwikly-embed-modal-open") {

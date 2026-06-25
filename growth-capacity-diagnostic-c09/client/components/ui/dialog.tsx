@@ -28,12 +28,20 @@ function getEmbeddedPanelSize(viewport: {
   height: number;
 }): React.CSSProperties {
   const pad = EMBED_INSET * 2;
+  const isMobile = viewport.width < 768;
+  const availableHeight = Math.max(200, viewport.height - pad);
+
   return {
-    maxHeight: Math.min(EMBED_DIALOG_MAX_HEIGHT, viewport.height - pad),
-    width: Math.min(
-      EMBED_DIALOG_MAX_WIDTH,
-      Math.max(280, viewport.width - pad),
-    ),
+    maxHeight: isMobile
+      ? availableHeight
+      : Math.min(EMBED_DIALOG_MAX_HEIGHT, availableHeight),
+    height: isMobile ? availableHeight : undefined,
+    width: isMobile
+      ? Math.max(280, viewport.width - pad)
+      : Math.min(
+          EMBED_DIALOG_MAX_WIDTH,
+          Math.max(280, viewport.width - pad),
+        ),
     maxWidth: "100%",
   };
 }
@@ -53,7 +61,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-black/50  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
@@ -73,21 +81,30 @@ const DialogContent = React.forwardRef<
   const embeddedPanelSize = getEmbeddedPanelSize(viewport);
 
   const embeddedContentClassName = cn(
-    "relative z-[51] flex w-full flex-col gap-4 overflow-hidden border bg-background p-0 shadow-lg sm:rounded-xl",
+    "relative z-[51] flex w-full flex-col gap-4 overflow-hidden border bg-background p-0 shadow-lg",
+    viewport.width < 768 ? "rounded-t-xl rounded-b-none" : "sm:rounded-xl",
     className,
   );
 
   if (embedded) {
+    const isMobile = viewport.width < 768;
     return (
       <DialogPortal>
         <DialogPrimitive.Overlay
-          className="fixed z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          className="fixed z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
           style={embeddedFrame}
         />
-        {/* Flex centering keeps the panel inside the visible slice without transform. */}
         <div
-          className="fixed z-50 flex items-center justify-center pointer-events-none"
-          style={{ ...embeddedFrame, padding: EMBED_INSET }}
+          className={cn(
+            "fixed z-50 flex justify-center pointer-events-none",
+            isMobile ? "items-end" : "items-center",
+          )}
+          style={{
+            ...embeddedFrame,
+            padding: isMobile
+              ? `0 ${EMBED_INSET}px ${EMBED_INSET}px`
+              : EMBED_INSET,
+          }}
         >
           <DialogPrimitive.Content
             ref={ref}

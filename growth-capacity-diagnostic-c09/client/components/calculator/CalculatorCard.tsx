@@ -173,12 +173,14 @@ function CalculationsPanelBody({
   shiftsUnworkedPerMonth,
   weeksOut,
   m,
+  fullBreakdownDefault = "full-breakdown",
 }: {
   hygieneChairs: number;
   patientsPerChairPerDay: number;
   shiftsUnworkedPerMonth: number;
   weeksOut: number;
   m: CalculationMetrics;
+  fullBreakdownDefault?: string;
 }) {
   return (
     <div className="mx-auto max-w-2xl">
@@ -194,7 +196,12 @@ function CalculationsPanelBody({
       <Row compact label="Shifts unworked / month" value={fmtNum(shiftsUnworkedPerMonth)} />
       <Row compact label="Weeks out for new patients" value={fmtNum(weeksOut)} />
 
-      <Accordion type="single" collapsible defaultValue="full-breakdown" className="mt-3 border-t border-gray-100 pt-1">
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue={fullBreakdownDefault || undefined}
+        className="mt-3 border-t border-gray-100 pt-1"
+      >
         <AccordionItem value="full-breakdown" className="border-0">
           <AccordionTrigger className="py-2 text-xs font-bold text-navy-700 hover:no-underline">
             Show full calculation breakdown
@@ -280,19 +287,21 @@ function CalculationsPanelBody({
   );
 }
 
+type CalculationsDetailsProps = {
+  hygieneChairs: number;
+  patientsPerChairPerDay: number;
+  shiftsUnworkedPerMonth: number;
+  weeksOut: number;
+  m: CalculationMetrics;
+};
+
 function CalculationsDetails({
   hygieneChairs,
   patientsPerChairPerDay,
   shiftsUnworkedPerMonth,
   weeksOut,
   m,
-}: {
-  hygieneChairs: number;
-  patientsPerChairPerDay: number;
-  shiftsUnworkedPerMonth: number;
-  weeksOut: number;
-  m: CalculationMetrics;
-}) {
+}: CalculationsDetailsProps) {
   const isMobile = useIsMobile();
   const isEmbedded = useIsEmbedded();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -311,7 +320,8 @@ function CalculationsDetails({
     />
   );
 
-  if (isMobile) {
+  // Drawer on mobile standalone only — embed always uses Dialog (visual viewport positioning).
+  if (isMobile && !isEmbedded) {
     return (
       <Drawer onOpenChange={handleOpenChange}>
         <DrawerTrigger ref={triggerRef} className={CALCULATIONS_TRIGGER_CLASS}>
@@ -352,7 +362,7 @@ function CalculationsDetails({
           <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
           <DialogDescription className="text-xs">{CALC_PANEL_DESC}</DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 px-4 sm:px-5 py-3">
+        <div className="overflow-y-auto flex-1 min-h-0 px-4 sm:px-5 py-3">
           {panelBody}
         </div>
       </DialogContent>
@@ -611,7 +621,6 @@ export default function CalculatorCard() {
           />
         </div>
 
-        {/* Backlog breakdown */}
         <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-4">
           <div className="flex items-baseline justify-between gap-3">
             <div>
@@ -620,7 +629,7 @@ export default function CalculatorCard() {
                 {m.backlogCore > 0 ? (
                   <>Booked <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, new patients go elsewhere and current patients fall behind on recall.</>
                 ) : (
-                  <>At <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, patients still get in on time, so nothing's stuck yet.</>
+                  <>At <span className="font-semibold text-navy-700">{weeksOut} weeks out</span>, patients still get in on time, so nothing&apos;s stuck yet.</>
                 )}
               </div>
             </div>
@@ -635,7 +644,7 @@ export default function CalculatorCard() {
                 <span className="text-sm font-black tabular-nums text-red-500 shrink-0">{fmtCurrency(m.newPatientRevenueLost)}</span>
               </div>
               <p className="text-[11px] text-gray-500 mt-1 leading-snug">
-                New patients won't wait {weeksOut} weeks, so they book elsewhere. This is their first-year value.
+                New patients won&apos;t wait {weeksOut} weeks, so they book elsewhere. This is their first-year value.
               </p>
             </div>
             <div className="bg-white rounded-lg border border-gray-100 px-3 py-2.5">

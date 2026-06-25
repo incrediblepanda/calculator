@@ -58,6 +58,14 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Embed iframe: don't stretch to fill a tall iframe — height follows content */
+  html.embed-layout,
+  body.embed-layout,
+  body.embed-layout #root {
+    height: auto;
+    min-height: 0;
+  }
+
   :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th, input) {
     overflow-wrap: anywhere;
     word-break: break-word;

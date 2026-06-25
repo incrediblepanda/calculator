@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kwikly embed host — local test</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        color: #1a1a2e;
+        background: #f5f5f7;
+      }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .site-header strong {
+        font-size: 18px;
+      }
+
+      .spacer {
+        padding: 48px 24px;
+        max-width: 720px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      .spacer.tall {
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+      }
+
+      .embed-wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 16px 48px;
+      }
+
+      .embed-label {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #e84b8a;
+        margin-bottom: 8px;
+      }
+
+      .hint {
+        font-size: 14px;
+        color: #6b7280;
+        margin-top: 12px;
+      }
+    </style>
+    <script src="/kwikly-embed-host.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <strong>Fake Webflow page</strong>
+      <span>Local embed host test</span>
+    </header>
+
+    <section class="spacer tall">
+      <p>
+        Scroll down to the calculator, then scroll so only part of the iframe is
+        visible. Open <strong>See the detailed calculations</strong> and confirm
+        the dialog stays fully on screen (especially on mobile width).
+      </p>
+    </section>
+
+    <section class="embed-wrap">
+      <div class="embed-label">Calculator embed</div>
+      <iframe
+        data-kwikly-calc-embed
+        src="/embed/"
+        width="100%"
+        style="border: none; display: block; min-height: 900px"
+        scrolling="no"
+        title="Kwikly Clinical Capacity Calculator"
+      ></iframe>
+      <p class="hint">
+        This page loads <code>/kwikly-embed-host.js</code> the same way Webflow
+        would. Run <code>pnpm dev</code> first, then open
+        <code>http://localhost:8080/embed-host-test.html</code>.
+      </p>
+    </section>
+
+    <section class="spacer tall">
+      <p>More page content below the embed — keeps the host page scrollable.</p>
+    </section>
+  </body>
+</html>
