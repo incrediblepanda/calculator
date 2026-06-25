@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useHostEmbedScriptActive } from "@/hooks/use-host-embed-script";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
 
 const EMBED_INSET = 12;
@@ -54,34 +55,64 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     /** Pin overlay and panel to the visible iframe slice when the host page has scrolled. */
     embedded?: boolean;
+    /** Hide the default top-right close — use when the header renders its own close control. */
+    hideCloseButton?: boolean;
   }
->(({ className, children, embedded = false, style, ...props }, ref) => {
+>(({ className, children, embedded = false, hideCloseButton = false, style, ...props }, ref) => {
   const viewport = useVisualViewport(embedded);
   const isMobileEmbed = embedded && viewport.width < 768;
+  const hostScriptActive = useHostEmbedScriptActive(isMobileEmbed);
   const embeddedDesktopPanelSize = getEmbeddedDesktopPanelSize(viewport);
+
+  const closeButton = hideCloseButton ? null : (
+    <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+      <X className="h-4 w-4" />
+      <span className="sr-only">Close</span>
+    </DialogPrimitive.Close>
+  );
 
   if (embedded) {
     if (isMobileEmbed) {
+      if (hostScriptActive) {
+        return (
+          <DialogPortal>
+            <DialogPrimitive.Overlay
+              className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+            />
+            <DialogPrimitive.Content
+              ref={ref}
+              style={{ pointerEvents: "auto", ...style }}
+              className={cn(
+                "fixed inset-0 z-[51] flex min-h-0 w-full flex-col gap-0 overflow-hidden border-0 bg-background p-0 shadow-lg",
+                className,
+              )}
+              {...props}
+            >
+              {children}
+              {closeButton}
+            </DialogPrimitive.Content>
+          </DialogPortal>
+        );
+      }
+
       return (
         <DialogPortal>
           <DialogPrimitive.Overlay
             className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
           />
-          <DialogPrimitive.Content
-            ref={ref}
-            style={{ pointerEvents: "auto", ...style }}
-            className={cn(
-              "fixed inset-0 z-[51] flex min-h-0 w-full flex-col gap-0 overflow-hidden border-0 bg-background p-0 shadow-lg",
-              className,
-            )}
-            {...props}
-          >
-            {children}
-            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </DialogPrimitive.Close>
-          </DialogPrimitive.Content>
+          <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
+            <DialogPrimitive.Content
+              ref={ref}
+              style={{ pointerEvents: "auto", ...style }}
+              className={cn(
+                "relative z-[51] flex w-full min-h-0 max-h-[min(520px,85dvh)] flex-col gap-0 overflow-hidden rounded-t-xl border-0 bg-background p-0 shadow-lg",
+                className,
+              )}
+              {...props}
+            >
+              {children}
+            </DialogPrimitive.Content>
+          </div>
         </DialogPortal>
       );
     }
@@ -109,10 +140,7 @@ const DialogContent = React.forwardRef<
             {...props}
           >
             {children}
-            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </DialogPrimitive.Close>
+            {closeButton}
           </DialogPrimitive.Content>
         </div>
       </DialogPortal>
@@ -132,10 +160,7 @@ const DialogContent = React.forwardRef<
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
+        {closeButton}
       </DialogPrimitive.Content>
     </DialogPortal>
   );
