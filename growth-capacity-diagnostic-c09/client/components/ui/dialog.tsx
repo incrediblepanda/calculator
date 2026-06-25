@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { getHostEmbedViewport } from "@/lib/embed-height";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
 
 const EMBED_INSET = 12;
@@ -23,13 +24,25 @@ function getEmbeddedViewportFrame(viewport: {
   };
 }
 
-function getEmbeddedPanelSize(viewport: {
-  width: number;
-  height: number;
-}): React.CSSProperties {
+function getEmbeddedPanelSize(
+  viewport: {
+    width: number;
+    height: number;
+  },
+  hasHostViewport: boolean,
+): React.CSSProperties {
   const pad = EMBED_INSET * 2;
   const isMobile = viewport.width < 768;
   const availableHeight = Math.max(200, viewport.height - pad);
+
+  if (isMobile && !hasHostViewport) {
+    const cappedHeight = Math.min(520, Math.floor(availableHeight * 0.85));
+    return {
+      maxHeight: cappedHeight,
+      width: Math.max(280, viewport.width - pad),
+      maxWidth: "100%",
+    };
+  }
 
   return {
     maxHeight: isMobile
@@ -77,8 +90,12 @@ const DialogContent = React.forwardRef<
   }
 >(({ className, children, embedded = false, style, ...props }, ref) => {
   const viewport = useVisualViewport(embedded);
+  const hostViewport = embedded ? getHostEmbedViewport() : null;
+  const hasHostViewport = Boolean(
+    hostViewport && hostViewport.width > 0 && hostViewport.height > 0,
+  );
   const embeddedFrame = getEmbeddedViewportFrame(viewport);
-  const embeddedPanelSize = getEmbeddedPanelSize(viewport);
+  const embeddedPanelSize = getEmbeddedPanelSize(viewport, hasHostViewport);
 
   const embeddedContentClassName = cn(
     "relative z-[51] flex w-full flex-col gap-4 overflow-hidden border bg-background p-0 shadow-lg",
@@ -88,6 +105,12 @@ const DialogContent = React.forwardRef<
 
   if (embedded) {
     const isMobile = viewport.width < 768;
+    const alignItems = isMobile && !hasHostViewport ? "items-center" : isMobile ? "items-end" : "items-center";
+    const framePadding = isMobile
+      ? hasHostViewport
+        ? `0 ${EMBED_INSET}px ${EMBED_INSET}px`
+        : EMBED_INSET
+      : EMBED_INSET;
     return (
       <DialogPortal>
         <DialogPrimitive.Overlay
@@ -97,13 +120,11 @@ const DialogContent = React.forwardRef<
         <div
           className={cn(
             "fixed z-50 flex justify-center pointer-events-none",
-            isMobile ? "items-end" : "items-center",
+            alignItems,
           )}
           style={{
             ...embeddedFrame,
-            padding: isMobile
-              ? `0 ${EMBED_INSET}px ${EMBED_INSET}px`
-              : EMBED_INSET,
+            padding: framePadding,
           }}
         >
           <DialogPrimitive.Content

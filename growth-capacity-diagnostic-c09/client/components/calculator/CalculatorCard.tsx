@@ -362,7 +362,7 @@ function CalculationsDetails({
           <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
           <DialogDescription className="text-xs">{CALC_PANEL_DESC}</DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 min-h-0 px-4 sm:px-5 py-3">
+        <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {panelBody}
         </div>
       </DialogContent>

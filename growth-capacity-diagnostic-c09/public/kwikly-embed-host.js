@@ -14,9 +14,11 @@
  */
 (function () {
   var SELECTOR =
-    'iframe[src*="calc.joinkwikly.com/embed"], iframe[data-kwikly-calc-embed]';
+    'iframe[src*="calc.joinkwikly.com/embed"], iframe[src*="calc.aikwikly.com/embed"], iframe[data-kwikly-calc-embed]';
   var MIN_HEIGHT = 900;
   var FALLBACK_HEIGHT = MIN_HEIGHT;
+  var modalFrame = null;
+  var modalViewportListeners = null;
 
   function applyHeight(frame, height, minHeight) {
     var floor = minHeight || MIN_HEIGHT;
@@ -45,6 +47,124 @@
     }
   }
 
+  function getHostVisibleFrame(frame) {
+    var rect = frame.getBoundingClientRect();
+    var vv = window.visualViewport;
+    var vTop = vv ? vv.offsetTop : 0;
+    var vLeft = vv ? vv.offsetLeft : 0;
+    var vHeight = vv ? vv.height : window.innerHeight;
+    var vWidth = vv ? vv.width : window.innerWidth;
+    var vBottom = vTop + vHeight;
+    var vRight = vLeft + vWidth;
+
+    var top = Math.max(rect.top, vTop);
+    var left = Math.max(rect.left, vLeft);
+    var bottom = Math.min(rect.bottom, vBottom);
+    var right = Math.min(rect.right, vRight);
+
+    return {
+      top: Math.max(0, top - rect.top),
+      left: Math.max(0, left - rect.left),
+      width: Math.max(0, right - left),
+      height: Math.max(0, bottom - top),
+    };
+  }
+
+  function postViewportToFrame(frame) {
+    try {
+      frame.contentWindow.postMessage(
+        {
+          type: "kwikly-embed-host-viewport",
+          viewport: getHostVisibleFrame(frame),
+        },
+        "*",
+      );
+    } catch (_err) {
+      /* cross-origin guard */
+    }
+  }
+
+  function scrollFrameIntoHostViewport(frame) {
+    var rect = frame.getBoundingClientRect();
+    var vv = window.visualViewport;
+    var vTop = vv ? vv.offsetTop : 0;
+    var delta = rect.top - vTop;
+    if (Math.abs(delta) > 1) {
+      window.scrollBy(0, delta);
+    }
+  }
+
+  function detachModalViewportListeners() {
+    if (!modalViewportListeners) return;
+    var update = modalViewportListeners.update;
+    window.removeEventListener("scroll", update, true);
+    window.removeEventListener("resize", update);
+    var vv = window.visualViewport;
+    if (vv) {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    }
+    modalViewportListeners = null;
+  }
+
+  function attachModalViewportListeners(frame) {
+    detachModalViewportListeners();
+    var update = function () {
+      postViewportToFrame(frame);
+    };
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    var vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", update);
+      vv.addEventListener("scroll", update);
+    }
+    modalViewportListeners = { update: update };
+    update();
+  }
+
+  function openEmbedModal(frame) {
+    frame.dataset.kwiklyModalOpen = "1";
+    frame.dataset.kwiklySavedHeight = frame.style.height || "";
+    frame.dataset.kwiklySavedMinHeight = frame.style.minHeight || "";
+
+    var vv = window.visualViewport;
+    var targetHeight = Math.ceil(vv ? vv.height : window.innerHeight);
+    frame.style.minHeight = targetHeight + "px";
+    frame.style.height = targetHeight + "px";
+
+    scrollFrameIntoHostViewport(frame);
+    frame.scrollIntoView({
+      block: "start",
+      inline: "nearest",
+      behavior: "instant",
+    });
+
+    modalFrame = frame;
+    attachModalViewportListeners(frame);
+
+    requestAnimationFrame(function () {
+      scrollFrameIntoHostViewport(frame);
+      postViewportToFrame(frame);
+    });
+  }
+
+  function closeEmbedModal(frame) {
+    if (modalFrame === frame) {
+      detachModalViewportListeners();
+      modalFrame = null;
+    }
+
+    frame.dataset.kwiklyModalOpen = "0";
+    if (frame.dataset.kwiklySavedMinHeight) {
+      frame.style.minHeight = frame.dataset.kwiklySavedMinHeight;
+    }
+    if (frame.dataset.kwiklySavedHeight) {
+      frame.style.height = frame.dataset.kwiklySavedHeight;
+    }
+    requestHeight(frame);
+  }
+
   function initFrame(frame) {
     if (frame.dataset.kwiklyEmbedInit === "1") return;
     frame.dataset.kwiklyEmbedInit = "1";
@@ -58,7 +178,10 @@
       requestHeight(frame);
     });
 
-    if (frame.contentDocument && frame.contentDocument.readyState === "complete") {
+    if (
+      frame.contentDocument &&
+      frame.contentDocument.readyState === "complete"
+    ) {
       requestHeight(frame);
     }
   }
@@ -80,18 +203,11 @@
     }
 
     if (data.type === "kwikly-embed-modal-open") {
-      frame.dataset.kwiklyModalOpen = "1";
-      frame.dataset.kwiklySavedHeight = frame.style.height || "";
-      frame.style.height = window.innerHeight + "px";
-      frame.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+      openEmbedModal(frame);
     }
 
     if (data.type === "kwikly-embed-modal-close") {
-      frame.dataset.kwiklyModalOpen = "0";
-      if (frame.dataset.kwiklySavedHeight) {
-        frame.style.height = frame.dataset.kwiklySavedHeight;
-      }
-      requestHeight(frame);
+      closeEmbedModal(frame);
     }
   });
 

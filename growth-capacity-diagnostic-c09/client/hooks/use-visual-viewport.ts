@@ -1,5 +1,10 @@
 import * as React from "react";
 
+import {
+  getHostEmbedViewport,
+  subscribeEmbedViewport,
+} from "@/lib/embed-height";
+
 export type VisualViewportRect = {
   top: number;
   left: number;
@@ -17,14 +22,25 @@ function readVisualViewport(): VisualViewportRect {
   };
 }
 
-/** Visible slice of the iframe when the host page has scrolled. */
+/**
+ * Visible area for embed dialogs. Prefers the host-page intersection rect
+ * (from kwikly-embed-host.js) because iframe visualViewport ignores host scroll.
+ */
 export function useVisualViewport(active: boolean) {
-  const [rect, setRect] = React.useState<VisualViewportRect>(readVisualViewport);
+  const [fallback, setFallback] = React.useState<VisualViewportRect>(
+    readVisualViewport,
+  );
+  const [, bumpHostViewport] = React.useReducer((n: number) => n + 1, 0);
+
+  React.useEffect(() => {
+    if (!active) return;
+    return subscribeEmbedViewport(bumpHostViewport);
+  }, [active]);
 
   React.useEffect(() => {
     if (!active) return;
 
-    const update = () => setRect(readVisualViewport());
+    const update = () => setFallback(readVisualViewport());
     update();
 
     const vv = window.visualViewport;
@@ -41,5 +57,12 @@ export function useVisualViewport(active: boolean) {
     };
   }, [active]);
 
-  return rect;
+  if (!active) return fallback;
+
+  const host = getHostEmbedViewport();
+  if (host && host.width > 0 && host.height > 0) {
+    return host;
+  }
+
+  return fallback;
 }
