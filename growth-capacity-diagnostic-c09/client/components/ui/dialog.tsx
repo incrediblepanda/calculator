@@ -7,6 +7,44 @@ import { useVisualViewport } from "@/hooks/use-visual-viewport";
 
 const EMBED_INSET = 12;
 const EMBED_DIALOG_MAX_HEIGHT = 520;
+const EMBED_DIALOG_MAX_WIDTH = 512;
+
+function getEmbeddedViewportFrame(viewport: {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}): React.CSSProperties {
+  return {
+    top: viewport.top,
+    left: viewport.left,
+    width: viewport.width,
+    height: viewport.height,
+  };
+}
+
+function getEmbeddedPanelSize(viewport: {
+  width: number;
+  height: number;
+}): React.CSSProperties {
+  const pad = EMBED_INSET * 2;
+  const isMobile = viewport.width < 768;
+  const availableHeight = Math.max(200, viewport.height - pad);
+
+  return {
+    maxHeight: isMobile
+      ? availableHeight
+      : Math.min(EMBED_DIALOG_MAX_HEIGHT, availableHeight),
+    height: isMobile ? availableHeight : undefined,
+    width: isMobile
+      ? Math.max(280, viewport.width - pad)
+      : Math.min(
+          EMBED_DIALOG_MAX_WIDTH,
+          Math.max(280, viewport.width - pad),
+        ),
+    maxWidth: "100%",
+  };
+}
 
 const Dialog = DialogPrimitive.Root;
 
@@ -23,7 +61,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-black/50  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}
@@ -39,49 +77,60 @@ const DialogContent = React.forwardRef<
   }
 >(({ className, children, embedded = false, style, ...props }, ref) => {
   const viewport = useVisualViewport(embedded);
+  const embeddedFrame = getEmbeddedViewportFrame(viewport);
+  const embeddedPanelSize = getEmbeddedPanelSize(viewport);
 
-  const embeddedOverlayStyle: React.CSSProperties | undefined = embedded
-    ? {
-        top: viewport.top,
-        left: viewport.left,
-        width: viewport.width,
-        height: viewport.height,
-      }
-    : undefined;
+  const embeddedContentClassName = cn(
+    "relative z-[51] flex w-full flex-col gap-4 overflow-hidden border bg-background p-0 shadow-lg",
+    viewport.width < 768 ? "rounded-t-xl rounded-b-none" : "sm:rounded-xl",
+    className,
+  );
 
-  const embeddedContentStyle: React.CSSProperties | undefined = embedded
-    ? {
-        top: viewport.top + EMBED_INSET,
-        left: viewport.left + viewport.width / 2,
-        transform: "translateX(-50%)",
-        maxHeight: Math.min(
-          EMBED_DIALOG_MAX_HEIGHT,
-          Math.max(240, viewport.height - EMBED_INSET * 2),
-        ),
-        width: Math.min(
-          512,
-          Math.max(280, viewport.width - EMBED_INSET * 2),
-        ),
-      }
-    : undefined;
+  if (embedded) {
+    const isMobile = viewport.width < 768;
+    return (
+      <DialogPortal>
+        <DialogPrimitive.Overlay
+          className="fixed z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          style={embeddedFrame}
+        />
+        <div
+          className={cn(
+            "fixed z-50 flex justify-center pointer-events-none",
+            isMobile ? "items-end" : "items-center",
+          )}
+          style={{
+            ...embeddedFrame,
+            padding: isMobile
+              ? `0 ${EMBED_INSET}px ${EMBED_INSET}px`
+              : EMBED_INSET,
+          }}
+        >
+          <DialogPrimitive.Content
+            ref={ref}
+            style={{ ...embeddedPanelSize, pointerEvents: "auto", ...style }}
+            className={embeddedContentClassName}
+            {...props}
+          >
+            {children}
+            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </div>
+      </DialogPortal>
+    );
+  }
 
   return (
     <DialogPortal>
-      {embedded ? (
-        <DialogPrimitive.Overlay
-          className="fixed z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-          style={embeddedOverlayStyle}
-        />
-      ) : (
-        <DialogOverlay />
-      )}
+      <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
-        style={{ ...(embedded ? embeddedContentStyle : undefined), ...style }}
+        style={style}
         className={cn(
-          embedded
-            ? "fixed z-50 flex w-full flex-col gap-4 border bg-background p-0 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:rounded-xl"
-            : "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
           className,
         )}
         {...props}
