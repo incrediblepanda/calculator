@@ -100,12 +100,25 @@ const DialogContent = React.forwardRef<
           <DialogPrimitive.Overlay
             className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
           />
-          <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-3">
             <DialogPrimitive.Content
-              ref={ref}
-              style={{ pointerEvents: "auto", ...style }}
+              ref={(node) => {
+                if (typeof ref === "function") ref(node);
+                else if (ref) ref.current = node;
+                if (node) {
+                  requestAnimationFrame(() => {
+                    node.scrollIntoView({ block: "center", inline: "nearest" });
+                  });
+                }
+              }}
+              style={{
+                pointerEvents: "auto",
+                height: "min(520px, 85dvh)",
+                maxHeight: "min(520px, 85dvh)",
+                ...style,
+              }}
               className={cn(
-                "relative z-[51] flex w-full min-h-0 max-h-[min(520px,85dvh)] flex-col gap-0 overflow-hidden rounded-t-xl border-0 bg-background p-0 shadow-lg",
+                "relative z-[51] flex w-full min-h-0 flex-col gap-0 overflow-hidden rounded-xl border bg-background p-0 shadow-lg",
                 className,
               )}
               {...props}

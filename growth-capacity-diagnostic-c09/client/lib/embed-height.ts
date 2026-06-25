@@ -77,12 +77,7 @@ export function scrollEmbedIntoView(scrollAnchor?: Element | null) {
 
   const target = scrollAnchor ?? document.documentElement;
   const isMobile = window.innerWidth < 768;
-  const block =
-    scrollAnchor && isMobile
-      ? "start"
-      : scrollAnchor && isInVisualViewport(scrollAnchor)
-        ? "nearest"
-        : "center";
+  const block = scrollAnchor && isMobile ? "center" : scrollAnchor && isInVisualViewport(scrollAnchor) ? "nearest" : "center";
   target.scrollIntoView({ block, inline: "nearest" });
 
   // Optional — ignored when the host page has no listener
