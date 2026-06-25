@@ -9,39 +9,19 @@ const EMBED_INSET = 12;
 const EMBED_DIALOG_MAX_HEIGHT = 520;
 const EMBED_DIALOG_MAX_WIDTH = 512;
 
-function getEmbeddedViewportFrame(viewport: {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}): React.CSSProperties {
-  return {
-    top: viewport.top,
-    left: viewport.left,
-    width: viewport.width,
-    height: viewport.height,
-  };
-}
-
-function getEmbeddedPanelSize(viewport: {
+function getEmbeddedDesktopPanelSize(viewport: {
   width: number;
   height: number;
 }): React.CSSProperties {
   const pad = EMBED_INSET * 2;
-  const isMobile = viewport.width < 768;
   const availableHeight = Math.max(200, viewport.height - pad);
 
   return {
-    maxHeight: isMobile
-      ? availableHeight
-      : Math.min(EMBED_DIALOG_MAX_HEIGHT, availableHeight),
-    height: isMobile ? availableHeight : undefined,
-    width: isMobile
-      ? Math.max(280, viewport.width - pad)
-      : Math.min(
-          EMBED_DIALOG_MAX_WIDTH,
-          Math.max(280, viewport.width - pad),
-        ),
+    maxHeight: Math.min(EMBED_DIALOG_MAX_HEIGHT, availableHeight),
+    width: Math.min(
+      EMBED_DIALOG_MAX_WIDTH,
+      Math.max(280, viewport.width - pad),
+    ),
     maxWidth: "100%",
   };
 }
@@ -77,39 +57,55 @@ const DialogContent = React.forwardRef<
   }
 >(({ className, children, embedded = false, style, ...props }, ref) => {
   const viewport = useVisualViewport(embedded);
-  const embeddedFrame = getEmbeddedViewportFrame(viewport);
-  const embeddedPanelSize = getEmbeddedPanelSize(viewport);
-
-  const embeddedContentClassName = cn(
-    "relative z-[51] flex w-full flex-col gap-4 overflow-hidden border bg-background p-0 shadow-lg",
-    viewport.width < 768 ? "rounded-t-xl rounded-b-none" : "sm:rounded-xl",
-    className,
-  );
+  const isMobileEmbed = embedded && viewport.width < 768;
+  const embeddedDesktopPanelSize = getEmbeddedDesktopPanelSize(viewport);
 
   if (embedded) {
-    const isMobile = viewport.width < 768;
+    if (isMobileEmbed) {
+      return (
+        <DialogPortal>
+          <DialogPrimitive.Overlay
+            className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          />
+          <DialogPrimitive.Content
+            ref={ref}
+            style={{ pointerEvents: "auto", ...style }}
+            className={cn(
+              "fixed inset-0 z-[51] flex min-h-0 w-full flex-col gap-0 overflow-hidden border-0 bg-background p-0 shadow-lg",
+              className,
+            )}
+            {...props}
+          >
+            {children}
+            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </DialogPortal>
+      );
+    }
+
     return (
       <DialogPortal>
         <DialogPrimitive.Overlay
-          className="fixed z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-          style={embeddedFrame}
+          className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
         />
         <div
-          className={cn(
-            "fixed z-50 flex justify-center pointer-events-none",
-            isMobile ? "items-end" : "items-center",
-          )}
-          style={{
-            ...embeddedFrame,
-            padding: isMobile
-              ? `0 ${EMBED_INSET}px ${EMBED_INSET}px`
-              : EMBED_INSET,
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          style={{ padding: EMBED_INSET }}
         >
           <DialogPrimitive.Content
             ref={ref}
-            style={{ ...embeddedPanelSize, pointerEvents: "auto", ...style }}
-            className={embeddedContentClassName}
+            style={{
+              ...embeddedDesktopPanelSize,
+              pointerEvents: "auto",
+              ...style,
+            }}
+            className={cn(
+              "relative z-[51] flex w-full min-h-0 max-h-full flex-col gap-0 overflow-hidden border bg-background p-0 shadow-lg sm:rounded-xl",
+              className,
+            )}
             {...props}
           >
             {children}

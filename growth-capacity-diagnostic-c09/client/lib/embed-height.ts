@@ -3,8 +3,50 @@ export const EMBED_MIN_HEIGHT = 900;
 
 export const EMBED_ROOT_ID = "embed-root";
 
+export type EmbedViewportRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
 let modalOpenCount = 0;
 let lastPostedHeight = 0;
+let hostEmbedViewport: EmbedViewportRect | null = null;
+const embedViewportListeners = new Set<() => void>();
+
+export function subscribeEmbedViewport(listener: () => void) {
+  embedViewportListeners.add(listener);
+  return () => {
+    embedViewportListeners.delete(listener);
+  };
+}
+
+export function getHostEmbedViewport() {
+  return hostEmbedViewport;
+}
+
+function setHostEmbedViewport(viewport: EmbedViewportRect | null) {
+  hostEmbedViewport = viewport;
+  embedViewportListeners.forEach((listener) => listener());
+}
+
+function isHostEmbedViewport(
+  data: unknown,
+): data is { type: string; viewport: EmbedViewportRect } {
+  if (!data || typeof data !== "object") return false;
+  const payload = data as { type?: unknown; viewport?: unknown };
+  if (payload.type !== "kwikly-embed-host-viewport") return false;
+  const viewport = payload.viewport;
+  if (!viewport || typeof viewport !== "object") return false;
+  const rect = viewport as Record<string, unknown>;
+  return (
+    typeof rect.top === "number" &&
+    typeof rect.left === "number" &&
+    typeof rect.width === "number" &&
+    typeof rect.height === "number"
+  );
+}
 
 function measureContentHeight() {
   const root = document.getElementById(EMBED_ROOT_ID);
@@ -34,8 +76,13 @@ export function scrollEmbedIntoView(scrollAnchor?: Element | null) {
   if (window.parent === window) return;
 
   const target = scrollAnchor ?? document.documentElement;
+  const isMobile = window.innerWidth < 768;
   const block =
-    scrollAnchor && isInVisualViewport(scrollAnchor) ? "nearest" : "center";
+    scrollAnchor && isMobile
+      ? "start"
+      : scrollAnchor && isInVisualViewport(scrollAnchor)
+        ? "nearest"
+        : "center";
   target.scrollIntoView({ block, inline: "nearest" });
 
   // Optional — ignored when the host page has no listener
@@ -79,9 +126,13 @@ export function setEmbedModalOpen(
 
   if (open) {
     scrollEmbedIntoView(scrollAnchor);
+    window.setTimeout(() => {
+      window.parent.postMessage({ type: "kwikly-embed-request-viewport" }, "*");
+    }, 0);
     return;
   }
 
+  setHostEmbedViewport(null);
   lastPostedHeight = 0;
   window.parent.postMessage({ type: "kwikly-embed-modal-close" }, "*");
   requestEmbedHeightUpdate();
@@ -118,6 +169,9 @@ export function startEmbedHeightReporting() {
 
   function onMessage(event: MessageEvent) {
     if (event.data === "kwikly-embed-request-height") postEmbedHeight(true);
+    if (isHostEmbedViewport(event.data)) {
+      setHostEmbedViewport(event.data.viewport);
+    }
   }
 
   return () => {

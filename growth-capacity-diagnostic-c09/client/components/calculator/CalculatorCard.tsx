@@ -317,6 +317,7 @@ function CalculationsDetails({
       shiftsUnworkedPerMonth={shiftsUnworkedPerMonth}
       weeksOut={weeksOut}
       m={m}
+      fullBreakdownDefault={isEmbedded && isMobile ? undefined : "full-breakdown"}
     />
   );
 
@@ -347,7 +348,7 @@ function CalculationsDetails({
   }
 
   return (
-    <Dialog onOpenChange={handleOpenChange}>
+    <Dialog onOpenChange={handleOpenChange} modal={!(isEmbedded && isMobile)}>
       <DialogTrigger ref={triggerRef} className={CALCULATIONS_TRIGGER_CLASS}>
         <CalculationsTriggerLabel />
       </DialogTrigger>
@@ -358,11 +359,11 @@ function CalculationsDetails({
           !isEmbedded && "max-h-[min(75vh,520px)]",
         )}
       >
-        <DialogHeader className="border-b border-gray-100 px-5 py-3 pr-12 text-left space-y-1">
+        <DialogHeader className="shrink-0 border-b border-gray-100 px-5 py-3 pr-12 text-left space-y-1">
           <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
           <DialogDescription className="text-xs">{CALC_PANEL_DESC}</DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 min-h-0 px-4 sm:px-5 py-3">
+        <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {panelBody}
         </div>
       </DialogContent>
