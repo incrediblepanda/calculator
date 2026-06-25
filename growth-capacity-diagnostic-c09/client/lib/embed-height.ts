@@ -12,8 +12,18 @@ export type EmbedViewportRect = {
 
 let modalOpenCount = 0;
 let lastPostedHeight = 0;
+let hostScriptReady = false;
 let hostEmbedViewport: EmbedViewportRect | null = null;
 const embedViewportListeners = new Set<() => void>();
+
+export function isHostScriptReady() {
+  return hostScriptReady;
+}
+
+function markHostScriptReady() {
+  if (hostScriptReady) return;
+  hostScriptReady = true;
+}
 
 export function subscribeEmbedViewport(listener: () => void) {
   embedViewportListeners.add(listener);
@@ -79,9 +89,16 @@ export function scrollEmbedIntoView(scrollAnchor?: Element | null) {
   const isMobile = window.innerWidth < 768;
   const block = scrollAnchor && isMobile ? "center" : scrollAnchor && isInVisualViewport(scrollAnchor) ? "nearest" : "center";
   target.scrollIntoView({ block, inline: "nearest" });
+}
 
-  // Optional — ignored when the host page has no listener
-  window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
+function restoreEmbedScrollPosition() {
+  if (window.parent === window) return;
+
+  window.scrollTo(0, 0);
+  document.getElementById(EMBED_ROOT_ID)?.scrollIntoView({
+    block: "start",
+    inline: "nearest",
+  });
 }
 
 /** Report content height to the host page (no-op when not embedded in an iframe). */
@@ -106,7 +123,7 @@ export function requestEmbedHeightUpdate() {
 
   lastPostedHeight = 0;
   postEmbedHeight(true);
-  [50, 150, 300].forEach((delay) => {
+  [50, 150, 300, 500, 1000].forEach((delay) => {
     window.setTimeout(() => postEmbedHeight(true), delay);
   });
 }
@@ -121,16 +138,25 @@ export function setEmbedModalOpen(
 
   if (open) {
     scrollEmbedIntoView(scrollAnchor);
-    window.setTimeout(() => {
-      window.parent.postMessage({ type: "kwikly-embed-request-viewport" }, "*");
-    }, 0);
+    if (hostScriptReady) {
+      window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
+      window.setTimeout(() => {
+        window.parent.postMessage({ type: "kwikly-embed-request-viewport" }, "*");
+      }, 0);
+    }
     return;
   }
 
   setHostEmbedViewport(null);
   lastPostedHeight = 0;
-  window.parent.postMessage({ type: "kwikly-embed-modal-close" }, "*");
+  if (hostScriptReady) {
+    window.parent.postMessage({ type: "kwikly-embed-modal-close" }, "*");
+  }
   requestEmbedHeightUpdate();
+  window.setTimeout(restoreEmbedScrollPosition, 0);
+  [100, 300].forEach((delay) => {
+    window.setTimeout(restoreEmbedScrollPosition, delay);
+  });
 }
 
 /** Call on embed mount — retries help when the host script loads after the iframe. */
@@ -164,7 +190,15 @@ export function startEmbedHeightReporting() {
 
   function onMessage(event: MessageEvent) {
     if (event.data === "kwikly-embed-request-height") postEmbedHeight(true);
+    if (
+      event.data &&
+      typeof event.data === "object" &&
+      (event.data as { type?: string }).type === "kwikly-embed-host-ready"
+    ) {
+      markHostScriptReady();
+    }
     if (isHostEmbedViewport(event.data)) {
+      markHostScriptReady();
       setHostEmbedViewport(event.data.viewport);
     }
   }
