@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import Slider from "./Slider";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -354,15 +355,29 @@ function CalculationsDetails({
       </DialogTrigger>
       <DialogContent
         embedded={isEmbedded}
+        hideCloseButton={isEmbedded && isMobile}
         className={cn(
           "max-w-lg p-0 gap-0 overflow-hidden flex flex-col sm:rounded-xl",
           !isEmbedded && "max-h-[min(75vh,520px)]",
         )}
       >
-        <DialogHeader className="shrink-0 border-b border-gray-100 px-5 py-3 pr-12 text-left space-y-1">
-          <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
-          <DialogDescription className="text-xs">{CALC_PANEL_DESC}</DialogDescription>
-        </DialogHeader>
+        {isEmbedded && isMobile ? (
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3">
+            <DialogHeader className="min-w-0 flex-1 space-y-1 p-0 text-left">
+              <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
+              <DialogDescription className="text-xs">{CALC_PANEL_DESC}</DialogDescription>
+            </DialogHeader>
+            <DialogClose className="mt-0.5 shrink-0 rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-navy-800 transition-colors">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </div>
+        ) : (
+          <DialogHeader className="shrink-0 border-b border-gray-100 px-5 py-3 pr-12 text-left space-y-1">
+            <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
+            <DialogDescription className="text-xs">{CALC_PANEL_DESC}</DialogDescription>
+          </DialogHeader>
+        )}
         <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {panelBody}
         </div>
