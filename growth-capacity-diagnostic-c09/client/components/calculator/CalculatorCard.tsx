@@ -741,7 +741,7 @@ export default function CalculatorCard() {
             }}
             className="flex w-full items-center justify-center bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm py-3.5 rounded-lg transition-colors"
           >
-            Save My Results &amp; Talk to Our Team
+            Save My Results &amp; Sign Up
           </a>
         </div>
       </div>
