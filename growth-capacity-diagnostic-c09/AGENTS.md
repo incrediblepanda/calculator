@@ -155,6 +155,52 @@ const data: MyRouteResponse = await response.json();
 - **Netlify**: `netlify.toml` in this directory (client-only build + optional API function)
 - **Binary**: Self-contained executables (Linux, macOS, Windows)
 
+### Production domain (`calc.joinkwikly.com`)
+
+The calculator must be served from a `*.joinkwikly.com` host so the CTA can set a shared `calc_payload` cookie read by `dashboard.joinkwikly.com`.
+
+1. **Vercel:** Project → Settings → Domains → add `calc.joinkwikly.com`
+2. **DNS:** CNAME `calc` → `cname.vercel-dns.com` (or value shown in Vercel)
+3. **Verify:** HTTPS works; `/embed` loads with `frame-ancestors *` (see root `vercel.json`)
+4. **Cutover:** Update Webflow embeds (below), then retire `calc.aikwikly.com`
+
+The calculator must be on `*.joinkwikly.com` for the `calc_payload` cookie to work. Metrics are sent via cookie only — not URL query params.
+
+### Webflow embed snippets
+
+Host script (page custom code, before `</body>`):
+
+```html
+<script src="https://calc.joinkwikly.com/kwikly-embed-host.js" defer></script>
+```
+
+Iframe (auto height with host script):
+
+```html
+<iframe
+  src="https://calc.joinkwikly.com/embed/"
+  width="100%"
+  style="border:none;display:block;"
+  scrolling="no"
+  title="Kwikly Clinical Capacity Calculator"
+></iframe>
+```
+
+Without the host script, add `min-height:900px` to the iframe `style`.
+
+Local test: `pnpm dev` → `http://localhost:8080/embed-host-test.html`
+
+### Rails enrollment integration (handoff)
+
+On `GET /dashboard.joinkwikly.com/enrollment/office?utm_source=calculator`:
+
+1. Read `calc_payload` cookie (JSON — see `shared/api.ts` → `CalculatorHubSpotPayload`)
+2. Validate input ranges and non-negative opportunity dollars
+3. Store in session; clear cookie after read
+4. On enrollment completion, map to HubSpot (`CALCULATOR_HUBSPOT_PROPERTIES` in `shared/api.ts`)
+
+Local dev on `localhost` cannot set `.joinkwikly.com` cookies — test the full flow on `calc.joinkwikly.com` (staging or production).
+
 ## Architecture Notes
 
 - Single-port development with Vite + Express integration

@@ -28,6 +28,10 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsEmbedded } from "@/hooks/use-is-embedded";
 import { setEmbedModalOpen } from "@/lib/embed-height";
+import {
+  getEnrollmentUrl,
+  navigateToEnrollment,
+} from "@/lib/calculator-lead";
 import { cn } from "@/lib/utils";
 
 // ─── Fixed assumptions (industry norms — not shown to the office) ───────────────
@@ -715,9 +719,26 @@ export default function CalculatorCard() {
 
         <div className="mt-5">
           <a
-            href="https://joinkwikly.com/contact"
+            href={getEnrollmentUrl()}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateToEnrollment(
+                {
+                  hygieneChairs,
+                  patientsPerChairPerDay,
+                  shiftsUnworkedPerMonth,
+                  weeksOut,
+                },
+                {
+                  totalOpportunityCore: m.totalOpportunityCore,
+                  protectedRevenue: m.protectedRevenue,
+                  newPatientRevenueLost: m.newPatientRevenueLost,
+                  recurringLeftOnTable: m.recurringLeftOnTable,
+                },
+              );
+            }}
             className="flex w-full items-center justify-center bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm py-3.5 rounded-lg transition-colors"
           >
             Save My Results &amp; Talk to Our Team
