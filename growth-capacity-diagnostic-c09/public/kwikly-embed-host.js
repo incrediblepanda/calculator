@@ -17,9 +17,6 @@
     'iframe[src*="calc.joinkwikly.com/embed"], iframe[src*="calc.aikwikly.com/embed"], iframe[data-kwikly-calc-embed]';
   var MIN_HEIGHT = 900;
   var FALLBACK_HEIGHT = MIN_HEIGHT;
-  var MODAL_MIN_HEIGHT = 320;
-  var modalFrame = null;
-  var modalViewportListeners = null;
 
   function applyHeight(frame, height, minHeight) {
     var floor = minHeight || MIN_HEIGHT;
@@ -71,75 +68,6 @@
     }
   }
 
-  function postFullIframeViewport(frame) {
-    if (!modalViewportListeners) return;
-    var update = modalViewportListeners.update;
-    window.removeEventListener("resize", update);
-    var vv = window.visualViewport;
-    if (vv) {
-      vv.removeEventListener("resize", update);
-    }
-    modalViewportListeners = null;
-  }
-
-  function getModalFrameHeight() {
-    var vv = window.visualViewport;
-    return Math.max(MODAL_MIN_HEIGHT, Math.ceil(vv ? vv.height : window.innerHeight));
-  }
-
-  function postIframeViewport(frame, height, width) {
-    try {
-      frame.contentWindow.postMessage(
-        {
-          type: "kwikly-embed-host-viewport",
-          viewport: {
-            top: 0,
-            left: 0,
-            width: width,
-            height: height,
-          },
-        },
-        "*",
-      );
-    } catch (_err) {
-      /* cross-origin guard */
-    }
-  }
-
-  function syncEmbedModalFrame(frame) {
-    var height = getModalFrameHeight();
-    var width = Math.ceil(frame.getBoundingClientRect().width);
-    frame.style.height = height + "px";
-    frame.style.minHeight = height + "px";
-    postIframeViewport(frame, height, width);
-  }
-
-  function attachModalResizeListener(frame) {
-    detachModalViewportListeners();
-    var update = function () {
-      if (frame.dataset.kwiklyModalOpen !== "1") return;
-      syncEmbedModalFrame(frame);
-    };
-    window.addEventListener("resize", update);
-    var vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener("resize", update);
-    }
-    modalViewportListeners = { update: update };
-  }
-
-  /** Expand iframe to viewport height for the dialog — no host scroll hijacking. */
-  function openEmbedModal(frame) {
-    frame.dataset.kwiklyModalOpen = "1";
-    frame.dataset.kwiklySavedHeight = frame.style.height || "";
-    frame.dataset.kwiklySavedMinHeight = frame.style.minHeight || "";
-
-    modalFrame = frame;
-    detachModalViewportListeners();
-    syncEmbedModalFrame(frame);
-    attachModalResizeListener(frame);
-  }
-
   function notifyHostReady(frame) {
     try {
       frame.contentWindow.postMessage({ type: "kwikly-embed-host-ready" }, "*");
@@ -148,17 +76,16 @@
     }
   }
 
-  function closeEmbedModal(frame) {
-    if (modalFrame === frame) {
-      detachModalViewportListeners();
-      modalFrame = null;
-    }
+  /** Dialog is positioned inside the iframe — do not shrink the iframe on open. */
+  function openEmbedModal(frame) {
+    frame.dataset.kwiklyModalOpen = "1";
+    postFullIframeViewport(frame);
+  }
 
+  function closeEmbedModal(frame) {
     frame.dataset.kwiklyModalOpen = "0";
-    frame.style.minHeight = MIN_HEIGHT + "px";
-    frame.style.height = "";
     requestHeight(frame);
-    [50, 150, 500, 1000].forEach(function (delay) {
+    [50, 150, 300, 500, 1000].forEach(function (delay) {
       window.setTimeout(function () {
         requestHeight(frame);
       }, delay);
@@ -202,6 +129,7 @@
     if (data.type === "kwikly-embed-height" && typeof data.height === "number") {
       if (frame.dataset.kwiklyModalOpen === "1") return;
       applyHeight(frame, data.height, data.minHeight);
+      postFullIframeViewport(frame);
     }
 
     if (data.type === "kwikly-embed-modal-open") {
@@ -209,11 +137,7 @@
     }
 
     if (data.type === "kwikly-embed-request-viewport") {
-      if (frame.dataset.kwiklyModalOpen === "1") {
-        syncEmbedModalFrame(frame);
-      } else {
-        postFullIframeViewport(frame);
-      }
+      postFullIframeViewport(frame);
     }
 
     if (data.type === "kwikly-embed-modal-close") {
