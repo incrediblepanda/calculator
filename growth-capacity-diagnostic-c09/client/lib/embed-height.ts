@@ -13,7 +13,6 @@ export type EmbedViewportRect = {
 let modalOpenCount = 0;
 let lastPostedHeight = 0;
 let hostScriptReady = false;
-let mobileScrollEnabled = false;
 let hostEmbedViewport: EmbedViewportRect | null = null;
 const embedViewportListeners = new Set<() => void>();
 
@@ -24,6 +23,9 @@ export function isHostScriptReady() {
 function markHostScriptReady() {
   if (hostScriptReady) return;
   hostScriptReady = true;
+  // Non-scrollable document + default overscroll → native scroll chaining to host.
+  document.documentElement.classList.add("embed-host-managed");
+  document.body.classList.add("embed-host-managed");
   embedViewportListeners.forEach((listener) => listener());
 }
 
@@ -41,7 +43,6 @@ export function getHostEmbedViewport() {
 function setHostEmbedViewport(viewport: EmbedViewportRect | null) {
   hostEmbedViewport = viewport;
   embedViewportListeners.forEach((listener) => listener());
-  maybeEnableMobileScrollFromViewport();
 }
 
 function isHostEmbedViewport(
@@ -104,34 +105,6 @@ function restoreEmbedScrollPosition() {
   });
 }
 
-function setMobileScrollEnabled(enabled: boolean) {
-  if (mobileScrollEnabled === enabled) return;
-  mobileScrollEnabled = enabled;
-  document.documentElement.classList.toggle("embed-mobile-scroll", enabled);
-  document.body.classList.toggle("embed-mobile-scroll", enabled);
-}
-
-function isMobileScrollMessage(
-  data: unknown,
-): data is { type: string; enabled: boolean } {
-  if (!data || typeof data !== "object") return false;
-  const payload = data as { type?: unknown; enabled?: unknown };
-  return (
-    payload.type === "kwikly-embed-mobile-scroll" &&
-    typeof payload.enabled === "boolean"
-  );
-}
-
-function maybeEnableMobileScrollFromViewport() {
-  if (!hostScriptReady || window.innerWidth >= 768) {
-    setMobileScrollEnabled(false);
-    return;
-  }
-  const viewport = getHostEmbedViewport();
-  if (!viewport || viewport.width <= 0 || viewport.height <= 0) return;
-  setMobileScrollEnabled(true);
-}
-
 function isEventInsideDialog(event: Event) {
   const target = event.target;
   if (!(target instanceof Element)) return false;
@@ -140,18 +113,16 @@ function isEventInsideDialog(event: Event) {
 
 function shouldForwardScrollToHost(deltaY: number, event?: Event) {
   if (modalOpenCount > 0) return false;
-  if (mobileScrollEnabled || window.innerWidth < 768) return false;
   if (event && isEventInsideDialog(event)) return false;
+  // Host-managed document is non-scrollable — native chaining usually handles
+  // this, but wheel forwarding keeps desktop browsers without chaining working.
   if (hostScriptReady) return true;
 
-  const scrollRoot = document.getElementById(EMBED_ROOT_ID);
-  const scrollHeight = scrollRoot?.scrollHeight ?? document.documentElement.scrollHeight;
-  const clientHeight = scrollRoot?.clientHeight ?? window.innerHeight;
-  if (scrollHeight <= clientHeight + 1) return true;
+  const scrollHeight = document.documentElement.scrollHeight;
+  if (scrollHeight <= window.innerHeight + 1) return true;
 
-  const scrollTop = scrollRoot?.scrollTop ?? window.scrollY;
-  const atTop = scrollTop <= 0;
-  const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+  const atTop = window.scrollY <= 0;
+  const atBottom = window.scrollY + window.innerHeight >= scrollHeight - 1;
 
   if (deltaY < 0 && atTop) return true;
   if (deltaY > 0 && atBottom) return true;
@@ -165,7 +136,7 @@ function forwardScrollToHost(deltaX: number, deltaY: number) {
   );
 }
 
-/** Forward wheel to the host on desktop — mobile uses native scroll inside the iframe. */
+/** Forward wheel to the host page — touch scroll chains natively (see global.css). */
 function startEmbedScrollForwarding() {
   if (window.parent === window) return;
 
@@ -221,14 +192,11 @@ export function setEmbedModalOpen(
     if (!hostScriptReady) {
       scrollEmbedIntoView(scrollAnchor);
     }
-    document.getElementById(EMBED_ROOT_ID)?.classList.add("embed-modal-open");
     if (hostScriptReady) {
       window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
     }
     return;
   }
-
-  document.getElementById(EMBED_ROOT_ID)?.classList.remove("embed-modal-open");
 
   setHostEmbedViewport(null);
   lastPostedHeight = 0;
@@ -290,16 +258,11 @@ export function startEmbedHeightReporting() {
       markHostScriptReady();
       setHostEmbedViewport(event.data.viewport);
     }
-    if (isMobileScrollMessage(event.data)) {
-      setMobileScrollEnabled(event.data.enabled);
-    }
   }
 
   return () => {
-    document.documentElement.classList.remove("embed-layout");
-    document.documentElement.classList.remove("embed-mobile-scroll");
-    document.body.classList.remove("embed-layout");
-    document.body.classList.remove("embed-mobile-scroll");
+    document.documentElement.classList.remove("embed-layout", "embed-host-managed");
+    document.body.classList.remove("embed-layout", "embed-host-managed");
     observer.disconnect();
     window.removeEventListener("load", onLoad);
     window.removeEventListener("message", onMessage);

@@ -58,7 +58,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Embed iframe: height follows content on desktop; mobile scrolls inside #embed-root */
+  /* Embed iframe: don't stretch to fill a tall iframe — height follows content */
   html.embed-layout,
   body.embed-layout,
   body.embed-layout #root {
@@ -68,22 +68,16 @@
     overscroll-behavior: none;
   }
 
-  html.embed-layout.embed-mobile-scroll,
-  body.embed-layout.embed-mobile-scroll,
-  body.embed-layout.embed-mobile-scroll #root {
-    height: 100%;
-    overflow: hidden;
-  }
-
-  body.embed-layout.embed-mobile-scroll #embed-root {
-    height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-  }
-
-  body.embed-layout.embed-mobile-scroll #embed-root.embed-modal-open {
-    overflow: hidden;
+  /*
+   * Host script sizes the iframe to content, so the embed document has nothing
+   * to scroll. Making it explicitly non-scrollable with default overscroll
+   * lets wheel/touch over the iframe chain natively to the host page
+   * (same behavior as YouTube embeds) — no postMessage forwarding needed.
+   */
+  html.embed-layout.embed-host-managed,
+  body.embed-layout.embed-host-managed {
+    overflow: clip;
+    overscroll-behavior: auto;
   }
 
   :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th, input) {

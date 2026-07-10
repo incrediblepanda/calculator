@@ -17,39 +17,13 @@
     'iframe[src*="calc.joinkwikly.com/embed"], iframe[src*="calc.aikwikly.com/embed"], iframe[data-kwikly-calc-embed]';
   var MIN_HEIGHT = 900;
   var FALLBACK_HEIGHT = MIN_HEIGHT;
-  var MOBILE_BREAKPOINT = 768;
   var lastPostedViewportWidth = 0;
   var lastPostedViewportHeight = 0;
 
-  function isMobileFrame(frame) {
-    return frame.getBoundingClientRect().width < MOBILE_BREAKPOINT;
-  }
-
-  function getHostViewportHeight() {
-    var vv = window.visualViewport;
-    return Math.max(MIN_HEIGHT, Math.ceil(vv ? vv.height : window.innerHeight));
-  }
-
-  function applyDesktopHeight(frame, height, minHeight) {
+  function applyHeight(frame, height, minHeight) {
     var floor = minHeight || MIN_HEIGHT;
     frame.style.minHeight = floor + "px";
     frame.style.height = Math.max(floor, Math.ceil(height)) + "px";
-    frame.dataset.kwiklyMobileScroll = "0";
-  }
-
-  function applyMobileViewportHeight(frame) {
-    var viewportH = getHostViewportHeight();
-    frame.style.height = viewportH + "px";
-    frame.style.minHeight = viewportH + "px";
-    frame.dataset.kwiklyMobileScroll = "1";
-  }
-
-  function applyHeight(frame, height, minHeight) {
-    if (isMobileFrame(frame)) {
-      applyMobileViewportHeight(frame);
-    } else {
-      applyDesktopHeight(frame, height, minHeight);
-    }
   }
 
   function findSourceFrame(source) {
@@ -68,20 +42,6 @@
   function requestHeight(frame) {
     try {
       frame.contentWindow.postMessage("kwikly-embed-request-height", "*");
-    } catch (_err) {
-      /* cross-origin guard */
-    }
-  }
-
-  function notifyMobileScrollMode(frame) {
-    try {
-      frame.contentWindow.postMessage(
-        {
-          type: "kwikly-embed-mobile-scroll",
-          enabled: frame.dataset.kwiklyMobileScroll === "1",
-        },
-        "*",
-      );
     } catch (_err) {
       /* cross-origin guard */
     }
@@ -142,16 +102,6 @@
     });
   }
 
-  function syncMobileFrames() {
-    document.querySelectorAll(SELECTOR).forEach(function (frame) {
-      if (frame.dataset.kwiklyModalOpen === "1") return;
-      if (!isMobileFrame(frame)) return;
-      applyMobileViewportHeight(frame);
-      postFullIframeViewport(frame);
-      notifyMobileScrollMode(frame);
-    });
-  }
-
   function initFrame(frame) {
     if (frame.dataset.kwiklyEmbedInit === "1") return;
     frame.dataset.kwiklyEmbedInit = "1";
@@ -190,7 +140,6 @@
       if (frame.dataset.kwiklyModalOpen === "1") return;
       applyHeight(frame, data.height, data.minHeight);
       postFullIframeViewport(frame);
-      notifyMobileScrollMode(frame);
     }
 
     if (data.type === "kwikly-embed-modal-open") {
@@ -207,7 +156,6 @@
 
     if (data.type === "kwikly-embed-scroll") {
       if (frame.dataset.kwiklyModalOpen === "1") return;
-      if (frame.dataset.kwiklyMobileScroll === "1") return;
       var deltaY = typeof data.deltaY === "number" ? data.deltaY : 0;
       var deltaX = typeof data.deltaX === "number" ? data.deltaX : 0;
       if (deltaX || deltaY) {
@@ -215,12 +163,6 @@
       }
     }
   });
-
-  window.addEventListener("resize", syncMobileFrames);
-  var vv = window.visualViewport;
-  if (vv) {
-    vv.addEventListener("resize", syncMobileFrames);
-  }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initAll);
