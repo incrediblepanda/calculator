@@ -13,6 +13,7 @@ export type EmbedViewportRect = {
 let modalOpenCount = 0;
 let lastPostedHeight = 0;
 let hostScriptReady = false;
+let mobileScrollEnabled = false;
 let hostEmbedViewport: EmbedViewportRect | null = null;
 const embedViewportListeners = new Set<() => void>();
 
@@ -40,6 +41,7 @@ export function getHostEmbedViewport() {
 function setHostEmbedViewport(viewport: EmbedViewportRect | null) {
   hostEmbedViewport = viewport;
   embedViewportListeners.forEach((listener) => listener());
+  maybeEnableMobileScrollFromViewport();
 }
 
 function isHostEmbedViewport(
@@ -102,8 +104,32 @@ function restoreEmbedScrollPosition() {
   });
 }
 
-function isEmbedDocumentScrollable() {
-  return document.documentElement.scrollHeight > window.innerHeight + 1;
+function setMobileScrollEnabled(enabled: boolean) {
+  if (mobileScrollEnabled === enabled) return;
+  mobileScrollEnabled = enabled;
+  document.documentElement.classList.toggle("embed-mobile-scroll", enabled);
+  document.body.classList.toggle("embed-mobile-scroll", enabled);
+}
+
+function isMobileScrollMessage(
+  data: unknown,
+): data is { type: string; enabled: boolean } {
+  if (!data || typeof data !== "object") return false;
+  const payload = data as { type?: unknown; enabled?: unknown };
+  return (
+    payload.type === "kwikly-embed-mobile-scroll" &&
+    typeof payload.enabled === "boolean"
+  );
+}
+
+function maybeEnableMobileScrollFromViewport() {
+  if (!hostScriptReady || window.innerWidth >= 768) {
+    setMobileScrollEnabled(false);
+    return;
+  }
+  const viewport = getHostEmbedViewport();
+  if (!viewport || viewport.width <= 0 || viewport.height <= 0) return;
+  setMobileScrollEnabled(true);
 }
 
 function isEventInsideDialog(event: Event) {
@@ -114,114 +140,45 @@ function isEventInsideDialog(event: Event) {
 
 function shouldForwardScrollToHost(deltaY: number, event?: Event) {
   if (modalOpenCount > 0) return false;
+  if (mobileScrollEnabled || window.innerWidth < 768) return false;
   if (event && isEventInsideDialog(event)) return false;
-  // Host script sizes the iframe to content — forward scroll to the parent page.
   if (hostScriptReady) return true;
-  if (!isEmbedDocumentScrollable()) return true;
 
-  const atTop = window.scrollY <= 0;
-  const atBottom =
-    window.scrollY + window.innerHeight >=
-    document.documentElement.scrollHeight - 1;
+  const scrollRoot = document.getElementById(EMBED_ROOT_ID);
+  const scrollHeight = scrollRoot?.scrollHeight ?? document.documentElement.scrollHeight;
+  const clientHeight = scrollRoot?.clientHeight ?? window.innerHeight;
+  if (scrollHeight <= clientHeight + 1) return true;
+
+  const scrollTop = scrollRoot?.scrollTop ?? window.scrollY;
+  const atTop = scrollTop <= 0;
+  const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
 
   if (deltaY < 0 && atTop) return true;
   if (deltaY > 0 && atBottom) return true;
   return false;
 }
 
-function forwardScrollToHost(deltaX: number, deltaY: number, source: "wheel" | "touch") {
+function forwardScrollToHost(deltaX: number, deltaY: number) {
   window.parent.postMessage(
-    { type: "kwikly-embed-scroll", deltaX, deltaY, source },
+    { type: "kwikly-embed-scroll", deltaX, deltaY },
     "*",
   );
 }
 
-function isInteractiveGestureTarget(event: Event) {
-  const target = event.target;
-  if (!(target instanceof Element)) return false;
-  return Boolean(
-    target.closest(
-      'input, button, select, textarea, label, [role="slider"], [data-embed-scroll-lock]',
-    ),
-  );
-}
-
-/** Forward wheel/touch to the host page when the embed has nothing to scroll. */
+/** Forward wheel to the host on desktop — mobile uses native scroll inside the iframe. */
 function startEmbedScrollForwarding() {
   if (window.parent === window) return;
 
   const onWheel = (event: WheelEvent) => {
     if (!shouldForwardScrollToHost(event.deltaY, event)) return;
-    forwardScrollToHost(event.deltaX, event.deltaY, "wheel");
+    forwardScrollToHost(event.deltaX, event.deltaY);
     event.preventDefault();
-  };
-
-  let lastTouchY: number | null = null;
-  let touchForwardGesture = false;
-  let pendingTouchDeltaY = 0;
-  let touchFlushRaf: number | null = null;
-
-  const flushTouchScroll = () => {
-    touchFlushRaf = null;
-    if (pendingTouchDeltaY === 0) return;
-    forwardScrollToHost(0, pendingTouchDeltaY, "touch");
-    pendingTouchDeltaY = 0;
-  };
-
-  const scheduleTouchScroll = (deltaY: number) => {
-    pendingTouchDeltaY += deltaY;
-    if (touchFlushRaf != null) return;
-    touchFlushRaf = window.requestAnimationFrame(flushTouchScroll);
-  };
-
-  const onTouchStart = (event: TouchEvent) => {
-    lastTouchY = event.touches[0]?.clientY ?? null;
-    touchForwardGesture = !isInteractiveGestureTarget(event);
-    pendingTouchDeltaY = 0;
-    if (touchFlushRaf != null) {
-      window.cancelAnimationFrame(touchFlushRaf);
-      touchFlushRaf = null;
-    }
-  };
-
-  const onTouchMove = (event: TouchEvent) => {
-    const touchY = event.touches[0]?.clientY;
-    if (touchY == null || lastTouchY == null || !touchForwardGesture) return;
-
-    const deltaY = lastTouchY - touchY;
-    lastTouchY = touchY;
-    if (Math.abs(deltaY) < 1) return;
-    if (!shouldForwardScrollToHost(deltaY, event)) return;
-
-    scheduleTouchScroll(deltaY);
-    event.preventDefault();
-  };
-
-  const onTouchEnd = () => {
-    lastTouchY = null;
-    touchForwardGesture = false;
-    if (touchFlushRaf != null) {
-      window.cancelAnimationFrame(touchFlushRaf);
-      touchFlushRaf = null;
-    }
-    flushTouchScroll();
   };
 
   window.addEventListener("wheel", onWheel, { passive: false });
-  window.addEventListener("touchstart", onTouchStart, { passive: true });
-  window.addEventListener("touchmove", onTouchMove, { passive: false });
-  window.addEventListener("touchend", onTouchEnd, { passive: true });
-  window.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
   return () => {
     window.removeEventListener("wheel", onWheel);
-    window.removeEventListener("touchstart", onTouchStart);
-    window.removeEventListener("touchmove", onTouchMove);
-    window.removeEventListener("touchend", onTouchEnd);
-    window.removeEventListener("touchcancel", onTouchEnd);
-    if (touchFlushRaf != null) {
-      window.cancelAnimationFrame(touchFlushRaf);
-    }
   };
 }
 
@@ -264,11 +221,14 @@ export function setEmbedModalOpen(
     if (!hostScriptReady) {
       scrollEmbedIntoView(scrollAnchor);
     }
+    document.getElementById(EMBED_ROOT_ID)?.classList.add("embed-modal-open");
     if (hostScriptReady) {
       window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
     }
     return;
   }
+
+  document.getElementById(EMBED_ROOT_ID)?.classList.remove("embed-modal-open");
 
   setHostEmbedViewport(null);
   lastPostedHeight = 0;
@@ -330,11 +290,16 @@ export function startEmbedHeightReporting() {
       markHostScriptReady();
       setHostEmbedViewport(event.data.viewport);
     }
+    if (isMobileScrollMessage(event.data)) {
+      setMobileScrollEnabled(event.data.enabled);
+    }
   }
 
   return () => {
     document.documentElement.classList.remove("embed-layout");
+    document.documentElement.classList.remove("embed-mobile-scroll");
     document.body.classList.remove("embed-layout");
+    document.body.classList.remove("embed-mobile-scroll");
     observer.disconnect();
     window.removeEventListener("load", onLoad);
     window.removeEventListener("message", onMessage);
