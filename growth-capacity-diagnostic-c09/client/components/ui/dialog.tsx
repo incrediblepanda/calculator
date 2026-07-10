@@ -86,14 +86,25 @@ const DialogContent = React.forwardRef<
   if (embedded) {
     if (isMobileEmbed) {
       if (hostScriptActive) {
+        // Host locks its scroll and reports the visible slice of the (full
+        // content height) iframe; pin the dialog to that slice so the header
+        // and close button stay on screen.
         return (
           <DialogPortal>
             <DialogPrimitive.Overlay className={EMBED_OVERLAY_CLASS} />
             <DialogPrimitive.Content
               ref={ref}
-              style={{ pointerEvents: "auto", ...style }}
+              style={{
+                pointerEvents: "auto",
+                position: "fixed",
+                top: viewport.top,
+                left: viewport.left,
+                width: viewport.width,
+                height: viewport.height,
+                ...style,
+              }}
               className={cn(
-                "fixed inset-0 z-[51] flex min-h-0 w-full flex-col gap-0 overflow-hidden border-0 bg-background p-0 shadow-lg",
+                "z-[51] flex min-h-0 flex-col gap-0 overflow-hidden border-0 bg-background p-0 shadow-lg",
                 className,
               )}
               {...props}

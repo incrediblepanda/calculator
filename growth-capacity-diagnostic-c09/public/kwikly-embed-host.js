@@ -47,6 +47,86 @@
     }
   }
 
+  /**
+   * Visible slice of the iframe (in iframe coordinates). While a dialog is
+   * open, the embed pins its overlay/panel to this rect so the close button
+   * stays on screen even though the iframe is full content height.
+   */
+  function postVisibleViewport(frame) {
+    try {
+      var rect = frame.getBoundingClientRect();
+      var vv = window.visualViewport;
+      var viewportWidth = vv ? vv.width : window.innerWidth;
+      var viewportHeight = vv ? vv.height : window.innerHeight;
+      var top = Math.max(0, -rect.top);
+      var left = Math.max(0, -rect.left);
+      var height = Math.max(
+        0,
+        Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0),
+      );
+      var width = Math.max(
+        0,
+        Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0),
+      );
+      frame.contentWindow.postMessage(
+        {
+          type: "kwikly-embed-host-viewport",
+          viewport: { top: top, left: left, width: width, height: height },
+        },
+        "*",
+      );
+    } catch (_err) {
+      /* cross-origin guard */
+    }
+  }
+
+  var scrollLocked = false;
+  var scrollLockY = 0;
+  var lockedFrame = null;
+
+  function onLockedViewportResize() {
+    if (lockedFrame) postVisibleViewport(lockedFrame);
+  }
+
+  function lockHostScroll(frame) {
+    if (scrollLocked) return;
+    scrollLocked = true;
+    lockedFrame = frame;
+    scrollLockY = window.scrollY || window.pageYOffset || 0;
+    var body = document.body;
+    body.style.position = "fixed";
+    body.style.top = -scrollLockY + "px";
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onLockedViewportResize);
+    }
+    window.addEventListener("resize", onLockedViewportResize);
+  }
+
+  function unlockHostScroll() {
+    if (!scrollLocked) return;
+    scrollLocked = false;
+    lockedFrame = null;
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener(
+        "resize",
+        onLockedViewportResize,
+      );
+    }
+    window.removeEventListener("resize", onLockedViewportResize);
+    var body = document.body;
+    body.style.position = "";
+    body.style.top = "";
+    body.style.left = "";
+    body.style.right = "";
+    body.style.width = "";
+    body.style.overflow = "";
+    window.scrollTo(0, scrollLockY);
+  }
+
   function postFullIframeViewport(frame) {
     try {
       var height = Math.ceil(
@@ -86,14 +166,24 @@
     }
   }
 
-  /** Dialog overlays inside the iframe — do not resize the iframe. */
-  function openEmbedModal(frame) {
+  /**
+   * Dialog overlays inside the iframe — do not resize the iframe.
+   * Mobile: lock host scroll and report the visible slice so the fullscreen
+   * dialog (and its close button) is pinned to what's actually on screen.
+   */
+  function openEmbedModal(frame, mobile) {
     frame.dataset.kwiklyModalOpen = "1";
-    postFullIframeViewport(frame);
+    if (mobile) {
+      lockHostScroll(frame);
+      postVisibleViewport(frame);
+    } else {
+      postFullIframeViewport(frame);
+    }
   }
 
   function closeEmbedModal(frame) {
     frame.dataset.kwiklyModalOpen = "0";
+    unlockHostScroll();
     requestHeight(frame);
     [50, 150, 300, 500, 1000].forEach(function (delay) {
       window.setTimeout(function () {
@@ -143,11 +233,15 @@
     }
 
     if (data.type === "kwikly-embed-modal-open") {
-      openEmbedModal(frame);
+      openEmbedModal(frame, data.mobile === true);
     }
 
     if (data.type === "kwikly-embed-request-viewport") {
-      postFullIframeViewport(frame);
+      if (scrollLocked && lockedFrame === frame) {
+        postVisibleViewport(frame);
+      } else {
+        postFullIframeViewport(frame);
+      }
     }
 
     if (data.type === "kwikly-embed-modal-close") {

@@ -193,7 +193,12 @@ export function setEmbedModalOpen(
       scrollEmbedIntoView(scrollAnchor);
     }
     if (hostScriptReady) {
-      window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
+      // mobile: host locks its scroll and reports the visible iframe slice so
+      // the fullscreen dialog can pin itself to what's actually on screen.
+      window.parent.postMessage(
+        { type: "kwikly-embed-modal-open", mobile: window.innerWidth < 768 },
+        "*",
+      );
     }
     return;
   }
