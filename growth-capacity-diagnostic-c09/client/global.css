@@ -66,6 +66,7 @@
     min-height: 0;
     overflow-x: clip;
     overscroll-behavior: none;
+    touch-action: pan-y;
   }
 
   :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th, input) {

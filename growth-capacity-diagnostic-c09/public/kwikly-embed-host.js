@@ -17,6 +17,11 @@
     'iframe[src*="calc.joinkwikly.com/embed"], iframe[src*="calc.aikwikly.com/embed"], iframe[data-kwikly-calc-embed]';
   var MIN_HEIGHT = 900;
   var FALLBACK_HEIGHT = MIN_HEIGHT;
+  var pendingScrollX = 0;
+  var pendingScrollY = 0;
+  var scrollFlushRaf = null;
+  var lastPostedViewportWidth = 0;
+  var lastPostedViewportHeight = 0;
 
   function applyHeight(frame, height, minHeight) {
     var floor = minHeight || MIN_HEIGHT;
@@ -51,6 +56,14 @@
         parseFloat(frame.style.height) || frame.getBoundingClientRect().height,
       );
       var width = Math.ceil(frame.getBoundingClientRect().width);
+      if (
+        width === lastPostedViewportWidth &&
+        height === lastPostedViewportHeight
+      ) {
+        return;
+      }
+      lastPostedViewportWidth = width;
+      lastPostedViewportHeight = height;
       frame.contentWindow.postMessage(
         {
           type: "kwikly-embed-host-viewport",
@@ -66,6 +79,25 @@
     } catch (_err) {
       /* cross-origin guard */
     }
+  }
+
+  function flushPendingScroll() {
+    scrollFlushRaf = null;
+    if (!pendingScrollX && !pendingScrollY) return;
+    window.scrollBy({
+      left: pendingScrollX,
+      top: pendingScrollY,
+      behavior: "auto",
+    });
+    pendingScrollX = 0;
+    pendingScrollY = 0;
+  }
+
+  function scheduleHostScroll(deltaX, deltaY) {
+    pendingScrollX += deltaX;
+    pendingScrollY += deltaY;
+    if (scrollFlushRaf != null) return;
+    scrollFlushRaf = window.requestAnimationFrame(flushPendingScroll);
   }
 
   function notifyHostReady(frame) {
@@ -149,7 +181,7 @@
       var deltaY = typeof data.deltaY === "number" ? data.deltaY : 0;
       var deltaX = typeof data.deltaX === "number" ? data.deltaX : 0;
       if (deltaX || deltaY) {
-        window.scrollBy(deltaX, deltaY);
+        scheduleHostScroll(deltaX, deltaY);
       }
     }
   });
