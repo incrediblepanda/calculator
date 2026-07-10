@@ -53,6 +53,7 @@
    */
   function getTopObstruction() {
     var maxBottom = 0;
+    var viewportHeight = window.innerHeight;
     var nodes = document.body ? document.body.querySelectorAll("*") : [];
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
@@ -60,12 +61,14 @@
       if (style.position !== "fixed" && style.position !== "sticky") continue;
       if (style.visibility === "hidden" || style.display === "none") continue;
       var rect = el.getBoundingClientRect();
-      if (rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
       if (rect.width < window.innerWidth * 0.5) continue;
-      if (rect.top > window.innerHeight * 0.3) continue;
+      // Only short bars flush with the viewport top (navbars) — tall sticky
+      // sections are page content, not chrome.
+      if (rect.top > 2 || rect.bottom <= 0) continue;
+      if (rect.height > viewportHeight * 0.35) continue;
       maxBottom = Math.max(maxBottom, rect.bottom);
     }
-    return Math.min(maxBottom, window.innerHeight * 0.4);
+    return Math.min(maxBottom, viewportHeight * 0.35);
   }
 
   /**

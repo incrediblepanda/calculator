@@ -10,10 +10,8 @@ const EMBED_INSET = 12;
 const EMBED_DIALOG_MAX_HEIGHT = 520;
 const EMBED_DIALOG_MAX_WIDTH = 512;
 
-const EMBED_OVERLAY_CLASS =
-  "fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0";
-
-function MobileEmbedBackdrop() {
+/** Plain backdrop — embedded dialogs are non-modal, so Radix skips its Overlay. */
+function EmbedBackdrop() {
   return (
     <div
       aria-hidden="true"
@@ -88,10 +86,11 @@ const DialogContent = React.forwardRef<
       if (hostScriptActive) {
         // Host locks its scroll and reports the visible slice of the (full
         // content height) iframe; pin the dialog to that slice so the header
-        // and close button stay on screen.
+        // and close button stay on screen. Plain backdrop div — Radix skips
+        // its Overlay for non-modal dialogs.
         return (
           <DialogPortal>
-            <DialogPrimitive.Overlay className={EMBED_OVERLAY_CLASS} />
+            <EmbedBackdrop />
             <DialogPrimitive.Content
               ref={ref}
               style={{
@@ -104,7 +103,7 @@ const DialogContent = React.forwardRef<
                 ...style,
               }}
               className={cn(
-                "z-[51] flex min-h-0 flex-col gap-0 overflow-hidden border-0 bg-background p-0 shadow-lg",
+                "z-[51] flex min-h-0 flex-col gap-0 overflow-hidden rounded-t-xl border-0 bg-background p-0 shadow-lg",
                 className,
               )}
               {...props}
@@ -118,7 +117,7 @@ const DialogContent = React.forwardRef<
 
       return (
         <DialogPortal>
-          <MobileEmbedBackdrop />
+          <EmbedBackdrop />
           <div className="fixed inset-0 z-[51] flex items-center justify-center pointer-events-none p-3">
             <DialogPrimitive.Content
               ref={ref}
@@ -143,7 +142,7 @@ const DialogContent = React.forwardRef<
 
     return (
       <DialogPortal>
-        <DialogPrimitive.Overlay className={EMBED_OVERLAY_CLASS} />
+        <EmbedBackdrop />
         <div
           className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
           style={{ padding: EMBED_INSET }}
