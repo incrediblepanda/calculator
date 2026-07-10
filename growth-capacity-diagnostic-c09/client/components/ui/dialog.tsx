@@ -110,15 +110,7 @@ const DialogContent = React.forwardRef<
           <MobileEmbedBackdrop />
           <div className="fixed inset-0 z-[51] flex items-center justify-center pointer-events-none p-3">
             <DialogPrimitive.Content
-              ref={(node) => {
-                if (typeof ref === "function") ref(node);
-                else if (ref) ref.current = node;
-                if (node) {
-                  requestAnimationFrame(() => {
-                    node.scrollIntoView({ block: "center", inline: "nearest" });
-                  });
-                }
-              }}
+              ref={ref}
               style={{
                 pointerEvents: "auto",
                 height: "min(520px, 85dvh)",

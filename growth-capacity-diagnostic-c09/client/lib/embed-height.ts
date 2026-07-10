@@ -105,8 +105,15 @@ function isEmbedDocumentScrollable() {
   return document.documentElement.scrollHeight > window.innerHeight + 1;
 }
 
-function shouldForwardScrollToHost(deltaY: number) {
+function isEventInsideDialog(event: Event) {
+  const target = event.target;
+  if (!(target instanceof Element)) return false;
+  return Boolean(target.closest('[role="dialog"]'));
+}
+
+function shouldForwardScrollToHost(deltaY: number, event?: Event) {
   if (modalOpenCount > 0) return false;
+  if (event && isEventInsideDialog(event)) return false;
   if (!isEmbedDocumentScrollable()) return true;
 
   const atTop = window.scrollY <= 0;
@@ -131,7 +138,7 @@ function startEmbedScrollForwarding() {
   if (window.parent === window) return;
 
   const onWheel = (event: WheelEvent) => {
-    if (!shouldForwardScrollToHost(event.deltaY)) return;
+    if (!shouldForwardScrollToHost(event.deltaY, event)) return;
     forwardScrollToHost(event.deltaX, event.deltaY);
     event.preventDefault();
   };
@@ -149,7 +156,7 @@ function startEmbedScrollForwarding() {
     const deltaY = lastTouchY - touchY;
     lastTouchY = touchY;
     if (Math.abs(deltaY) < 1) return;
-    if (!shouldForwardScrollToHost(deltaY)) return;
+    if (!shouldForwardScrollToHost(deltaY, event)) return;
     forwardScrollToHost(0, deltaY);
   };
 
@@ -208,7 +215,9 @@ export function setEmbedModalOpen(
   modalOpenCount = Math.max(0, modalOpenCount + (open ? 1 : -1));
 
   if (open) {
-    scrollEmbedIntoView(scrollAnchor);
+    if (!hostScriptReady) {
+      scrollEmbedIntoView(scrollAnchor);
+    }
     if (hostScriptReady) {
       window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
       window.setTimeout(() => {
