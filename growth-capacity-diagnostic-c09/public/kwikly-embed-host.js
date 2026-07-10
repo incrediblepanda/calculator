@@ -259,6 +259,14 @@
     if (data.type === "kwikly-embed-modal-close") {
       closeEmbedModal(frame);
     }
+
+    if (data.type === "kwikly-embed-scroll") {
+      var deltaY = typeof data.deltaY === "number" ? data.deltaY : 0;
+      var deltaX = typeof data.deltaX === "number" ? data.deltaX : 0;
+      if (deltaX || deltaY) {
+        window.scrollBy(deltaX, deltaY);
+      }
+    }
   });
 
   if (document.readyState === "loading") {
