@@ -4,6 +4,7 @@ import Slider from "./Slider";
 import {
   Dialog,
   DialogClose,
+  dialogCloseButtonClassName,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -371,7 +372,7 @@ function CalculationsDetails({
               <DialogTitle className="text-navy-900 text-base">{CALC_PANEL_TITLE}</DialogTitle>
               <DialogDescription className="text-xs">{CALC_PANEL_DESC}</DialogDescription>
             </DialogHeader>
-            <DialogClose className="mt-0.5 shrink-0 rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-navy-800 transition-colors">
+            <DialogClose className={cn("mt-0.5", dialogCloseButtonClassName)}>
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </DialogClose>
