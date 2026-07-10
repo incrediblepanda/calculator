@@ -158,8 +158,58 @@
     update();
   }
 
+  function getMobileModalFrameHeight() {
+    var vv = window.visualViewport;
+    return Math.max(MODAL_MIN_HEIGHT, Math.ceil(vv ? vv.height : window.innerHeight));
+  }
+
+  function postIframeViewport(frame, height, width) {
+    try {
+      frame.contentWindow.postMessage(
+        {
+          type: "kwikly-embed-host-viewport",
+          viewport: {
+            top: 0,
+            left: 0,
+            width: width,
+            height: height,
+          },
+        },
+        "*",
+      );
+    } catch (_err) {
+      /* cross-origin guard */
+    }
+  }
+
+  /** Mobile fullscreen dialog — expand iframe to viewport height without hijacking host scroll. */
+  function openMobileEmbedModal(frame) {
+    frame.dataset.kwiklyModalOpen = "1";
+    frame.dataset.kwiklyModalMobile = "1";
+    frame.dataset.kwiklySavedHeight = frame.style.height || "";
+    frame.dataset.kwiklySavedMinHeight = frame.style.minHeight || "";
+
+    modalFrame = frame;
+    detachModalViewportListeners();
+
+    var height = getMobileModalFrameHeight();
+    var width = Math.ceil(frame.getBoundingClientRect().width);
+    frame.style.height = height + "px";
+    frame.style.minHeight = height + "px";
+    postIframeViewport(frame, height, width);
+  }
+
+  function syncMobileModalFrame(frame) {
+    var height = getMobileModalFrameHeight();
+    var width = Math.ceil(frame.getBoundingClientRect().width);
+    frame.style.height = height + "px";
+    frame.style.minHeight = height + "px";
+    postIframeViewport(frame, height, width);
+  }
+
   function openEmbedModal(frame) {
     frame.dataset.kwiklyModalOpen = "1";
+    frame.dataset.kwiklyModalMobile = "0";
     frame.dataset.kwiklySavedHeight = frame.style.height || "";
     frame.dataset.kwiklySavedMinHeight = frame.style.minHeight || "";
 
@@ -195,6 +245,7 @@
     }
 
     frame.dataset.kwiklyModalOpen = "0";
+    frame.dataset.kwiklyModalMobile = "0";
     frame.style.minHeight = MIN_HEIGHT + "px";
     frame.style.height = "";
     requestHeight(frame);
@@ -245,12 +296,20 @@
     }
 
     if (data.type === "kwikly-embed-modal-open") {
-      openEmbedModal(frame);
+      if (data.mobile) {
+        openMobileEmbedModal(frame);
+      } else {
+        openEmbedModal(frame);
+      }
     }
 
     if (data.type === "kwikly-embed-request-viewport") {
       if (frame.dataset.kwiklyModalOpen === "1") {
-        syncModalFrame(frame);
+        if (frame.dataset.kwiklyModalMobile === "1") {
+          syncMobileModalFrame(frame);
+        } else {
+          syncModalFrame(frame);
+        }
       } else {
         postFullIframeViewport(frame);
       }
@@ -261,6 +320,7 @@
     }
 
     if (data.type === "kwikly-embed-scroll") {
+      if (frame.dataset.kwiklyModalOpen === "1") return;
       var deltaY = typeof data.deltaY === "number" ? data.deltaY : 0;
       var deltaX = typeof data.deltaX === "number" ? data.deltaX : 0;
       if (deltaX || deltaY) {

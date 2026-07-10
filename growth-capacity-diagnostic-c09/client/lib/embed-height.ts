@@ -208,9 +208,17 @@ export function setEmbedModalOpen(
   modalOpenCount = Math.max(0, modalOpenCount + (open ? 1 : -1));
 
   if (open) {
-    scrollEmbedIntoView(scrollAnchor);
+    if (!hostScriptReady) {
+      scrollEmbedIntoView(scrollAnchor);
+    }
     if (hostScriptReady) {
-      window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
+      window.parent.postMessage(
+        {
+          type: "kwikly-embed-modal-open",
+          mobile: window.innerWidth < 768,
+        },
+        "*",
+      );
       window.setTimeout(() => {
         window.parent.postMessage({ type: "kwikly-embed-request-viewport" }, "*");
       }, 0);
