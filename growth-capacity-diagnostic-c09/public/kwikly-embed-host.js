@@ -71,7 +71,7 @@
     }
   }
 
-  function postFullIframeViewport(frame) {
+  function detachModalViewportListeners() {
     if (!modalViewportListeners) return;
     var update = modalViewportListeners.update;
     window.removeEventListener("resize", update);
@@ -149,14 +149,16 @@
   }
 
   function closeEmbedModal(frame) {
+    detachModalViewportListeners();
     if (modalFrame === frame) {
-      detachModalViewportListeners();
       modalFrame = null;
     }
 
     frame.dataset.kwiklyModalOpen = "0";
-    frame.style.minHeight = MIN_HEIGHT + "px";
-    frame.style.height = "";
+    frame.style.height = frame.dataset.kwiklySavedHeight || "";
+    frame.style.minHeight = frame.dataset.kwiklySavedMinHeight || MIN_HEIGHT + "px";
+    delete frame.dataset.kwiklySavedHeight;
+    delete frame.dataset.kwiklySavedMinHeight;
     requestHeight(frame);
     [50, 150, 500, 1000].forEach(function (delay) {
       window.setTimeout(function () {

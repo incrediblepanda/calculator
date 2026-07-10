@@ -114,6 +114,8 @@ function isEventInsideDialog(event: Event) {
 function shouldForwardScrollToHost(deltaY: number, event?: Event) {
   if (modalOpenCount > 0) return false;
   if (event && isEventInsideDialog(event)) return false;
+  // Host script sizes the iframe to content — forward scroll to the parent page.
+  if (hostScriptReady) return true;
   if (!isEmbedDocumentScrollable()) return true;
 
   const atTop = window.scrollY <= 0;
@@ -233,10 +235,12 @@ export function setEmbedModalOpen(
     window.parent.postMessage({ type: "kwikly-embed-modal-close" }, "*");
   }
   requestEmbedHeightUpdate();
-  window.setTimeout(restoreEmbedScrollPosition, 0);
-  [100, 300].forEach((delay) => {
-    window.setTimeout(restoreEmbedScrollPosition, delay);
-  });
+  if (!hostScriptReady) {
+    window.setTimeout(restoreEmbedScrollPosition, 0);
+    [100, 300].forEach((delay) => {
+      window.setTimeout(restoreEmbedScrollPosition, delay);
+    });
+  }
 }
 
 /** Call on embed mount — retries help when the host script loads after the iframe. */
