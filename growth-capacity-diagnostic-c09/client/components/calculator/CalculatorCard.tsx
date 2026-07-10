@@ -353,7 +353,7 @@ function CalculationsDetails({
   }
 
   return (
-    <Dialog onOpenChange={handleOpenChange} modal>
+    <Dialog onOpenChange={handleOpenChange} modal={!isEmbedded}>
       <DialogTrigger ref={triggerRef} className={CALCULATIONS_TRIGGER_CLASS}>
         <CalculationsTriggerLabel />
       </DialogTrigger>

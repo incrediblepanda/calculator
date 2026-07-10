@@ -48,44 +48,6 @@
     }
   }
 
-  function getTopObstruction() {
-    var maxBottom = 0;
-    var nodes = document.body ? document.body.querySelectorAll("*") : [];
-    for (var i = 0; i < nodes.length; i++) {
-      var el = nodes[i];
-      var style = window.getComputedStyle(el);
-      if (style.position !== "fixed" && style.position !== "sticky") continue;
-      var rect = el.getBoundingClientRect();
-      if (rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
-      if (rect.width < window.innerWidth * 0.5) continue;
-      maxBottom = Math.max(maxBottom, rect.bottom);
-    }
-    return maxBottom;
-  }
-
-  function getHostVisibleFrame(frame) {
-    var rect = frame.getBoundingClientRect();
-    var vv = window.visualViewport;
-    var vTop = vv ? vv.offsetTop : 0;
-    var vLeft = vv ? vv.offsetLeft : 0;
-    var vHeight = vv ? vv.height : window.innerHeight;
-    var vWidth = vv ? vv.width : window.innerWidth;
-    var vBottom = vTop + vHeight;
-    var vRight = vLeft + vWidth;
-
-    var top = Math.max(rect.top, vTop);
-    var left = Math.max(rect.left, vLeft);
-    var bottom = Math.min(rect.bottom, vBottom);
-    var right = Math.min(rect.right, vRight);
-
-    return {
-      top: Math.max(0, top - rect.top),
-      left: Math.max(0, left - rect.left),
-      width: Math.max(0, right - left),
-      height: Math.max(0, bottom - top),
-    };
-  }
-
   function postFullIframeViewport(frame) {
     try {
       var height = Math.ceil(
@@ -109,56 +71,18 @@
     }
   }
 
-  function scrollFrameIntoHostViewport(frame) {
-    var rect = frame.getBoundingClientRect();
-    var vv = window.visualViewport;
-    var obstruction = getTopObstruction();
-    var targetTop = Math.max(vv ? vv.offsetTop : 0, obstruction);
-    var delta = rect.top - targetTop;
-    if (Math.abs(delta) > 1) {
-      window.scrollBy(0, delta);
-    }
-  }
-
-  function syncModalFrame(frame) {
-    var visible = getHostVisibleFrame(frame);
-    var targetHeight = Math.max(MODAL_MIN_HEIGHT, Math.ceil(visible.height));
-    frame.style.height = targetHeight + "px";
-    frame.style.minHeight = targetHeight + "px";
-    postFullIframeViewport(frame);
-  }
-
-  function detachModalViewportListeners() {
+  function postFullIframeViewport(frame) {
     if (!modalViewportListeners) return;
     var update = modalViewportListeners.update;
-    window.removeEventListener("scroll", update, true);
     window.removeEventListener("resize", update);
     var vv = window.visualViewport;
     if (vv) {
       vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
     }
     modalViewportListeners = null;
   }
 
-  function attachModalViewportListeners(frame) {
-    detachModalViewportListeners();
-    var update = function () {
-      scrollFrameIntoHostViewport(frame);
-      syncModalFrame(frame);
-    };
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    var vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener("resize", update);
-      vv.addEventListener("scroll", update);
-    }
-    modalViewportListeners = { update: update };
-    update();
-  }
-
-  function getMobileModalFrameHeight() {
+  function getModalFrameHeight() {
     var vv = window.visualViewport;
     return Math.max(MODAL_MIN_HEIGHT, Math.ceil(vv ? vv.height : window.innerHeight));
   }
@@ -182,52 +106,38 @@
     }
   }
 
-  /** Mobile fullscreen dialog — expand iframe to viewport height without hijacking host scroll. */
-  function openMobileEmbedModal(frame) {
+  function syncEmbedModalFrame(frame) {
+    var height = getModalFrameHeight();
+    var width = Math.ceil(frame.getBoundingClientRect().width);
+    frame.style.height = height + "px";
+    frame.style.minHeight = height + "px";
+    postIframeViewport(frame, height, width);
+  }
+
+  function attachModalResizeListener(frame) {
+    detachModalViewportListeners();
+    var update = function () {
+      if (frame.dataset.kwiklyModalOpen !== "1") return;
+      syncEmbedModalFrame(frame);
+    };
+    window.addEventListener("resize", update);
+    var vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", update);
+    }
+    modalViewportListeners = { update: update };
+  }
+
+  /** Expand iframe to viewport height for the dialog — no host scroll hijacking. */
+  function openEmbedModal(frame) {
     frame.dataset.kwiklyModalOpen = "1";
-    frame.dataset.kwiklyModalMobile = "1";
     frame.dataset.kwiklySavedHeight = frame.style.height || "";
     frame.dataset.kwiklySavedMinHeight = frame.style.minHeight || "";
 
     modalFrame = frame;
     detachModalViewportListeners();
-
-    var height = getMobileModalFrameHeight();
-    var width = Math.ceil(frame.getBoundingClientRect().width);
-    frame.style.height = height + "px";
-    frame.style.minHeight = height + "px";
-    postIframeViewport(frame, height, width);
-  }
-
-  function syncMobileModalFrame(frame) {
-    var height = getMobileModalFrameHeight();
-    var width = Math.ceil(frame.getBoundingClientRect().width);
-    frame.style.height = height + "px";
-    frame.style.minHeight = height + "px";
-    postIframeViewport(frame, height, width);
-  }
-
-  function openEmbedModal(frame) {
-    frame.dataset.kwiklyModalOpen = "1";
-    frame.dataset.kwiklyModalMobile = "0";
-    frame.dataset.kwiklySavedHeight = frame.style.height || "";
-    frame.dataset.kwiklySavedMinHeight = frame.style.minHeight || "";
-
-    scrollFrameIntoHostViewport(frame);
-    frame.scrollIntoView({
-      block: "start",
-      inline: "nearest",
-      behavior: "auto",
-    });
-
-    modalFrame = frame;
-    syncModalFrame(frame);
-    attachModalViewportListeners(frame);
-
-    requestAnimationFrame(function () {
-      scrollFrameIntoHostViewport(frame);
-      syncModalFrame(frame);
-    });
+    syncEmbedModalFrame(frame);
+    attachModalResizeListener(frame);
   }
 
   function notifyHostReady(frame) {
@@ -245,7 +155,6 @@
     }
 
     frame.dataset.kwiklyModalOpen = "0";
-    frame.dataset.kwiklyModalMobile = "0";
     frame.style.minHeight = MIN_HEIGHT + "px";
     frame.style.height = "";
     requestHeight(frame);
@@ -296,20 +205,12 @@
     }
 
     if (data.type === "kwikly-embed-modal-open") {
-      if (data.mobile) {
-        openMobileEmbedModal(frame);
-      } else {
-        openEmbedModal(frame);
-      }
+      openEmbedModal(frame);
     }
 
     if (data.type === "kwikly-embed-request-viewport") {
       if (frame.dataset.kwiklyModalOpen === "1") {
-        if (frame.dataset.kwiklyModalMobile === "1") {
-          syncMobileModalFrame(frame);
-        } else {
-          syncModalFrame(frame);
-        }
+        syncEmbedModalFrame(frame);
       } else {
         postFullIframeViewport(frame);
       }
