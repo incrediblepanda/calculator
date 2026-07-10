@@ -101,6 +101,77 @@ function restoreEmbedScrollPosition() {
   });
 }
 
+function isEmbedDocumentScrollable() {
+  return document.documentElement.scrollHeight > window.innerHeight + 1;
+}
+
+function shouldForwardScrollToHost(deltaY: number) {
+  if (modalOpenCount > 0) return false;
+  if (!isEmbedDocumentScrollable()) return true;
+
+  const atTop = window.scrollY <= 0;
+  const atBottom =
+    window.scrollY + window.innerHeight >=
+    document.documentElement.scrollHeight - 1;
+
+  if (deltaY < 0 && atTop) return true;
+  if (deltaY > 0 && atBottom) return true;
+  return false;
+}
+
+function forwardScrollToHost(deltaX: number, deltaY: number) {
+  window.parent.postMessage(
+    { type: "kwikly-embed-scroll", deltaX, deltaY },
+    "*",
+  );
+}
+
+/** Forward wheel/touch to the host page when the embed has nothing to scroll. */
+function startEmbedScrollForwarding() {
+  if (window.parent === window) return;
+
+  const onWheel = (event: WheelEvent) => {
+    if (!shouldForwardScrollToHost(event.deltaY)) return;
+    forwardScrollToHost(event.deltaX, event.deltaY);
+    event.preventDefault();
+  };
+
+  let lastTouchY: number | null = null;
+
+  const onTouchStart = (event: TouchEvent) => {
+    lastTouchY = event.touches[0]?.clientY ?? null;
+  };
+
+  const onTouchMove = (event: TouchEvent) => {
+    const touchY = event.touches[0]?.clientY;
+    if (touchY == null || lastTouchY == null) return;
+
+    const deltaY = lastTouchY - touchY;
+    lastTouchY = touchY;
+    if (Math.abs(deltaY) < 1) return;
+    if (!shouldForwardScrollToHost(deltaY)) return;
+    forwardScrollToHost(0, deltaY);
+  };
+
+  const onTouchEnd = () => {
+    lastTouchY = null;
+  };
+
+  window.addEventListener("wheel", onWheel, { passive: false });
+  window.addEventListener("touchstart", onTouchStart, { passive: true });
+  window.addEventListener("touchmove", onTouchMove, { passive: true });
+  window.addEventListener("touchend", onTouchEnd, { passive: true });
+  window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+  return () => {
+    window.removeEventListener("wheel", onWheel);
+    window.removeEventListener("touchstart", onTouchStart);
+    window.removeEventListener("touchmove", onTouchMove);
+    window.removeEventListener("touchend", onTouchEnd);
+    window.removeEventListener("touchcancel", onTouchEnd);
+  };
+}
+
 /** Report content height to the host page (no-op when not embedded in an iframe). */
 export function postEmbedHeight(force = false) {
   if (window.parent === window) return;
@@ -179,6 +250,7 @@ export function startEmbedHeightReporting() {
 
   window.addEventListener("load", onLoad);
   window.addEventListener("message", onMessage);
+  const stopScrollForwarding = startEmbedScrollForwarding();
 
   [100, 500, 1500].forEach((delay) => {
     window.setTimeout(() => postEmbedHeight(true), delay);
@@ -209,5 +281,6 @@ export function startEmbedHeightReporting() {
     observer.disconnect();
     window.removeEventListener("load", onLoad);
     window.removeEventListener("message", onMessage);
+    stopScrollForwarding?.();
   };
 }
