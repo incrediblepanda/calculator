@@ -48,9 +48,31 @@
   }
 
   /**
-   * Visible slice of the iframe (in iframe coordinates). While a dialog is
-   * open, the embed pins its overlay/panel to this rect so the close button
-   * stays on screen even though the iframe is full content height.
+   * Bottom edge of fixed/sticky host chrome (e.g. the site navbar) overlaying
+   * the top of the viewport — the dialog must start below it.
+   */
+  function getTopObstruction() {
+    var maxBottom = 0;
+    var nodes = document.body ? document.body.querySelectorAll("*") : [];
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      var style = window.getComputedStyle(el);
+      if (style.position !== "fixed" && style.position !== "sticky") continue;
+      if (style.visibility === "hidden" || style.display === "none") continue;
+      var rect = el.getBoundingClientRect();
+      if (rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
+      if (rect.width < window.innerWidth * 0.5) continue;
+      if (rect.top > window.innerHeight * 0.3) continue;
+      maxBottom = Math.max(maxBottom, rect.bottom);
+    }
+    return Math.min(maxBottom, window.innerHeight * 0.4);
+  }
+
+  /**
+   * Visible slice of the iframe (in iframe coordinates), excluding host
+   * chrome. While a dialog is open, the embed pins its overlay/panel to this
+   * rect so the close button stays on screen even though the iframe is full
+   * content height.
    */
   function postVisibleViewport(frame) {
     try {
@@ -58,20 +80,19 @@
       var vv = window.visualViewport;
       var viewportWidth = vv ? vv.width : window.innerWidth;
       var viewportHeight = vv ? vv.height : window.innerHeight;
-      var top = Math.max(0, -rect.top);
-      var left = Math.max(0, -rect.left);
-      var height = Math.max(
-        0,
-        Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0),
-      );
-      var width = Math.max(
-        0,
-        Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0),
-      );
+      var visibleTop = Math.max(rect.top, getTopObstruction());
+      var visibleBottom = Math.min(rect.bottom, viewportHeight);
+      var visibleLeft = Math.max(rect.left, 0);
+      var visibleRight = Math.min(rect.right, viewportWidth);
       frame.contentWindow.postMessage(
         {
           type: "kwikly-embed-host-viewport",
-          viewport: { top: top, left: left, width: width, height: height },
+          viewport: {
+            top: Math.max(0, visibleTop - rect.top),
+            left: Math.max(0, visibleLeft - rect.left),
+            width: Math.max(0, visibleRight - visibleLeft),
+            height: Math.max(0, visibleBottom - visibleTop),
+          },
         },
         "*",
       );
