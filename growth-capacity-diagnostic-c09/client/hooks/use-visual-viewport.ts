@@ -45,15 +45,11 @@ export function useVisualViewport(active: boolean) {
 
     const vv = window.visualViewport;
     vv?.addEventListener("resize", update);
-    vv?.addEventListener("scroll", update);
     window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
 
     return () => {
       vv?.removeEventListener("resize", update);
-      vv?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
     };
   }, [active]);
 

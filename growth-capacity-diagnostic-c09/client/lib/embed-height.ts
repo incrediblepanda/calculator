@@ -129,10 +129,20 @@ function shouldForwardScrollToHost(deltaY: number, event?: Event) {
   return false;
 }
 
-function forwardScrollToHost(deltaX: number, deltaY: number) {
+function forwardScrollToHost(deltaX: number, deltaY: number, source: "wheel" | "touch") {
   window.parent.postMessage(
-    { type: "kwikly-embed-scroll", deltaX, deltaY },
+    { type: "kwikly-embed-scroll", deltaX, deltaY, source },
     "*",
+  );
+}
+
+function isInteractiveGestureTarget(event: Event) {
+  const target = event.target;
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      'input, button, select, textarea, label, [role="slider"], [data-embed-scroll-lock]',
+    ),
   );
 }
 
@@ -142,34 +152,64 @@ function startEmbedScrollForwarding() {
 
   const onWheel = (event: WheelEvent) => {
     if (!shouldForwardScrollToHost(event.deltaY, event)) return;
-    forwardScrollToHost(event.deltaX, event.deltaY);
+    forwardScrollToHost(event.deltaX, event.deltaY, "wheel");
     event.preventDefault();
   };
 
   let lastTouchY: number | null = null;
+  let touchForwardGesture = false;
+  let pendingTouchDeltaY = 0;
+  let touchFlushRaf: number | null = null;
+
+  const flushTouchScroll = () => {
+    touchFlushRaf = null;
+    if (pendingTouchDeltaY === 0) return;
+    forwardScrollToHost(0, pendingTouchDeltaY, "touch");
+    pendingTouchDeltaY = 0;
+  };
+
+  const scheduleTouchScroll = (deltaY: number) => {
+    pendingTouchDeltaY += deltaY;
+    if (touchFlushRaf != null) return;
+    touchFlushRaf = window.requestAnimationFrame(flushTouchScroll);
+  };
 
   const onTouchStart = (event: TouchEvent) => {
     lastTouchY = event.touches[0]?.clientY ?? null;
+    touchForwardGesture = !isInteractiveGestureTarget(event);
+    pendingTouchDeltaY = 0;
+    if (touchFlushRaf != null) {
+      window.cancelAnimationFrame(touchFlushRaf);
+      touchFlushRaf = null;
+    }
   };
 
   const onTouchMove = (event: TouchEvent) => {
     const touchY = event.touches[0]?.clientY;
-    if (touchY == null || lastTouchY == null) return;
+    if (touchY == null || lastTouchY == null || !touchForwardGesture) return;
 
     const deltaY = lastTouchY - touchY;
     lastTouchY = touchY;
     if (Math.abs(deltaY) < 1) return;
     if (!shouldForwardScrollToHost(deltaY, event)) return;
-    forwardScrollToHost(0, deltaY);
+
+    scheduleTouchScroll(deltaY);
+    event.preventDefault();
   };
 
   const onTouchEnd = () => {
     lastTouchY = null;
+    touchForwardGesture = false;
+    if (touchFlushRaf != null) {
+      window.cancelAnimationFrame(touchFlushRaf);
+      touchFlushRaf = null;
+    }
+    flushTouchScroll();
   };
 
   window.addEventListener("wheel", onWheel, { passive: false });
   window.addEventListener("touchstart", onTouchStart, { passive: true });
-  window.addEventListener("touchmove", onTouchMove, { passive: true });
+  window.addEventListener("touchmove", onTouchMove, { passive: false });
   window.addEventListener("touchend", onTouchEnd, { passive: true });
   window.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
@@ -179,6 +219,9 @@ function startEmbedScrollForwarding() {
     window.removeEventListener("touchmove", onTouchMove);
     window.removeEventListener("touchend", onTouchEnd);
     window.removeEventListener("touchcancel", onTouchEnd);
+    if (touchFlushRaf != null) {
+      window.cancelAnimationFrame(touchFlushRaf);
+    }
   };
 }
 
