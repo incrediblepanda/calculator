@@ -23,6 +23,7 @@ export function isHostScriptReady() {
 function markHostScriptReady() {
   if (hostScriptReady) return;
   hostScriptReady = true;
+  embedViewportListeners.forEach((listener) => listener());
 }
 
 export function subscribeEmbedViewport(listener: () => void) {
@@ -222,9 +223,6 @@ export function setEmbedModalOpen(
     }
     if (hostScriptReady) {
       window.parent.postMessage({ type: "kwikly-embed-modal-open" }, "*");
-      window.setTimeout(() => {
-        window.parent.postMessage({ type: "kwikly-embed-request-viewport" }, "*");
-      }, 0);
     }
     return;
   }
@@ -253,7 +251,10 @@ export function startEmbedHeightReporting() {
   postEmbedHeight(true);
 
   const root = document.getElementById(EMBED_ROOT_ID);
-  const observer = new ResizeObserver(() => postEmbedHeight());
+  const observer = new ResizeObserver(() => {
+    if (modalOpenCount > 0) return;
+    postEmbedHeight();
+  });
   if (root) {
     observer.observe(root);
   } else {

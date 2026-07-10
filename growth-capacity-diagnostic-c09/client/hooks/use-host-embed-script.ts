@@ -2,6 +2,7 @@ import * as React from "react";
 
 import {
   getHostEmbedViewport,
+  isHostScriptReady,
   subscribeEmbedViewport,
 } from "@/lib/embed-height";
 
@@ -17,7 +18,10 @@ export function useHostEmbedScriptActive(active: boolean) {
 
     const sync = () => {
       const viewport = getHostEmbedViewport();
-      if (viewport && viewport.width > 0 && viewport.height > 0) {
+      if (
+        isHostScriptReady() ||
+        (viewport && viewport.width > 0 && viewport.height > 0)
+      ) {
         setReady(true);
       }
     };
